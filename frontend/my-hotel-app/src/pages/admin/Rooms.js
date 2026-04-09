@@ -2,6 +2,18 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 
+const statusText = {
+  available: 'Đang mở bán',
+  maintenance: 'Bảo trì',
+  inactive: 'Ngưng bán',
+};
+
+const statusBadge = {
+  available: 'bg-emerald-50 text-emerald-700',
+  maintenance: 'bg-yellow-50 text-yellow-700',
+  inactive: 'bg-gray-100 text-gray-600',
+};
+
 export default function AdminRooms() {
   const [rooms, setRooms] = useState([]);
   const [hotels, setHotels] = useState([]);
@@ -9,46 +21,66 @@ export default function AdminRooms() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
-    hotel_id: '', room_type: '', max_guests: 2,
-    price_per_night: '', total_quantity: 1, description: '', amenities: ''
+    hotel_id: '',
+    room_type: '',
+    max_guests: 2,
+    price_per_night: '',
+    total_quantity: 1,
+    status: 'available',
+    description: '',
+    amenities: '',
   });
 
   useEffect(() => {
-    api.get('/hotels').then(r => setHotels(r.data));
+    api.get('/hotels').then((res) => setHotels(res.data));
   }, []);
 
   useEffect(() => {
     if (selectedHotel) {
-      api.get(`/rooms?hotel_id=${selectedHotel}`).then(r => setRooms(r.data));
+      api.get(`/rooms?hotel_id=${selectedHotel}`).then((res) => setRooms(res.data));
     } else {
       setRooms([]);
     }
   }, [selectedHotel]);
+
+  const resetForm = () => {
+    setForm({
+      hotel_id: '',
+      room_type: '',
+      max_guests: 2,
+      price_per_night: '',
+      total_quantity: 1,
+      status: 'available',
+      description: '',
+      amenities: '',
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const data = {
       ...form,
       hotel_id: selectedHotel,
-      amenities: form.amenities.split(',').map(a => a.trim()).filter(a => a),
+      amenities: form.amenities.split(',').map((item) => item.trim()).filter(Boolean),
       price_per_night: Number(form.price_per_night),
       max_guests: Number(form.max_guests),
       total_quantity: Number(form.total_quantity),
     };
+
     try {
       if (editing) {
         await api.put(`/rooms/${editing._id}`, data);
-        alert('✅ Cập nhật thành công!');
+        alert('Cập nhật thành công');
       } else {
         await api.post('/rooms', data);
-        alert('✅ Thêm phòng thành công!');
+        alert('Thêm phòng thành công');
       }
       setShowForm(false);
       setEditing(null);
-      setForm({ hotel_id: '', room_type: '', max_guests: 2, price_per_night: '', total_quantity: 1, description: '', amenities: '' });
-      api.get(`/rooms?hotel_id=${selectedHotel}`).then(r => setRooms(r.data));
+      resetForm();
+      api.get(`/rooms?hotel_id=${selectedHotel}`).then((res) => setRooms(res.data));
     } catch (err) {
-      alert(err.response?.data?.message || 'Lỗi!');
+      alert(err.response?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
@@ -60,8 +92,9 @@ export default function AdminRooms() {
       max_guests: room.max_guests,
       price_per_night: room.price_per_night,
       total_quantity: room.total_quantity,
+      status: room.status || 'available',
       description: room.description || '',
-      amenities: room.amenities?.join(', ') || ''
+      amenities: room.amenities?.join(', ') || '',
     });
     setShowForm(true);
   };
@@ -69,7 +102,7 @@ export default function AdminRooms() {
   const handleDelete = async (id) => {
     if (!window.confirm('Xác nhận xóa phòng này?')) return;
     await api.delete(`/rooms/${id}`);
-    api.get(`/rooms?hotel_id=${selectedHotel}`).then(r => setRooms(r.data));
+    api.get(`/rooms?hotel_id=${selectedHotel}`).then((res) => setRooms(res.data));
   };
 
   return (
@@ -77,33 +110,42 @@ export default function AdminRooms() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Quản lý Phòng</h1>
-          <p className="text-gray-500 text-sm">{rooms.length} phòng</p>
+          <p className="text-gray-500 text-sm">{rooms.length} loại phòng</p>
         </div>
         {selectedHotel && (
-          <button onClick={() => { setShowForm(true); setEditing(null); }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition">
+          <button
+            onClick={() => {
+              setShowForm(true);
+              setEditing(null);
+              resetForm();
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition"
+          >
             <FaPlus /> Thêm phòng
           </button>
         )}
       </div>
 
-      {/* Chọn khách sạn */}
       <div className="bg-white rounded-2xl p-4 shadow-sm mb-6">
         <label className="block text-gray-700 text-sm font-medium mb-2">Chọn khách sạn</label>
-        <select value={selectedHotel} onChange={e => setSelectedHotel(e.target.value)}
-          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+        <select
+          value={selectedHotel}
+          onChange={(e) => setSelectedHotel(e.target.value)}
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+        >
           <option value="">-- Chọn khách sạn --</option>
-          {hotels.map(h => <option key={h._id} value={h._id}>{h.name} - {h.city}</option>)}
+          {hotels.map((hotel) => (
+            <option key={hotel._id} value={hotel._id}>
+              {hotel.name} - {hotel.city}
+            </option>
+          ))}
         </select>
       </div>
 
-      {/* Form */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-              {editing ? '✏️ Sửa phòng' : '➕ Thêm phòng mới'}
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">{editing ? 'Sửa phòng' : 'Thêm phòng mới'}</h2>
             <form onSubmit={handleSubmit} className="space-y-3">
               {[
                 { label: 'Loại phòng', key: 'room_type', placeholder: 'Deluxe Double', type: 'text' },
@@ -111,29 +153,55 @@ export default function AdminRooms() {
                 { label: 'Giá/đêm (VNĐ)', key: 'price_per_night', placeholder: '1500000', type: 'number' },
                 { label: 'Số lượng phòng', key: 'total_quantity', placeholder: '5', type: 'number' },
                 { label: 'Tiện ích (phân cách bằng dấu phẩy)', key: 'amenities', placeholder: 'TV, Điều hòa, Minibar', type: 'text' },
-              ].map(f => (
-                <div key={f.key}>
-                  <label className="block text-gray-700 text-sm font-medium mb-1">{f.label}</label>
-                  <input type={f.type} value={form[f.key]}
-                    onChange={e => setForm({ ...form, [f.key]: e.target.value })}
-                    placeholder={f.placeholder}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+              ].map((field) => (
+                <div key={field.key}>
+                  <label className="block text-gray-700 text-sm font-medium mb-1">{field.label}</label>
+                  <input
+                    type={field.type}
+                    value={form[field.key]}
+                    onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+                    placeholder={field.placeholder}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  />
                 </div>
               ))}
+
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-1">Tình trạng</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                >
+                  <option value="available">Đang mở bán</option>
+                  <option value="maintenance">Bảo trì</option>
+                  <option value="inactive">Ngưng bán</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">Mô tả</label>
-                <textarea value={form.description}
-                  onChange={e => setForm({ ...form, description: e.target.value })}
-                  rows="2" placeholder="Mô tả phòng..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none" />
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  rows="2"
+                  placeholder="Mô tả phòng..."
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none"
+                />
               </div>
+
               <div className="flex gap-3 pt-2">
-                <button type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-medium transition">
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-medium transition"
+                >
                   {editing ? 'Cập nhật' : 'Thêm mới'}
                 </button>
-                <button type="button" onClick={() => setShowForm(false)}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-xl font-medium transition">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-xl font-medium transition"
+                >
                   Hủy
                 </button>
               </div>
@@ -142,35 +210,53 @@ export default function AdminRooms() {
         </div>
       )}
 
-      {/* Danh sách phòng */}
       {selectedHotel ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rooms.map(room => (
+          {rooms.map((room) => (
             <div key={room._id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="font-bold text-gray-800">{room.room_type}</h3>
-                <span className="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded-full font-medium">
-                  {room.total_quantity} phòng
-                </span>
+              <div className="flex justify-between items-start gap-3 mb-3">
+                <div>
+                  <h3 className="font-bold text-gray-800">{room.room_type}</h3>
+                  <p className="text-gray-500 text-sm">Tối đa {room.max_guests} khách</p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded-full font-medium">
+                    {room.total_quantity} phòng
+                  </span>
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusBadge[room.status || 'available']}`}>
+                    {statusText[room.status || 'available']}
+                  </span>
+                </div>
               </div>
-              <p className="text-gray-500 text-sm mb-2">👥 Tối đa {room.max_guests} khách</p>
-              <p className="text-blue-600 font-bold mb-3">
+
+              <p className="text-blue-600 font-bold mb-2">
                 {Number(room.price_per_night).toLocaleString('vi-VN')}đ/đêm
               </p>
+              <p className="text-sm text-gray-500 mb-3">
+                Còn khả dụng: <strong className="text-gray-800">{room.available_quantity ?? room.total_quantity}</strong>
+              </p>
+
               {room.amenities?.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {room.amenities.slice(0, 3).map((a, i) => (
-                    <span key={i} className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">{a}</span>
+                  {room.amenities.slice(0, 3).map((item, index) => (
+                    <span key={index} className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                      {item}
+                    </span>
                   ))}
                 </div>
               )}
+
               <div className="flex gap-2">
-                <button onClick={() => handleEdit(room)}
-                  className="flex-1 flex items-center justify-center gap-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 py-2 rounded-xl text-sm font-medium transition">
+                <button
+                  onClick={() => handleEdit(room)}
+                  className="flex-1 flex items-center justify-center gap-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 py-2 rounded-xl text-sm font-medium transition"
+                >
                   <FaEdit /> Sửa
                 </button>
-                <button onClick={() => handleDelete(room._id)}
-                  className="flex-1 flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-xl text-sm font-medium transition">
+                <button
+                  onClick={() => handleDelete(room._id)}
+                  className="flex-1 flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-xl text-sm font-medium transition"
+                >
                   <FaTrash /> Xóa
                 </button>
               </div>
@@ -179,7 +265,7 @@ export default function AdminRooms() {
         </div>
       ) : (
         <div className="text-center py-20 text-gray-400">
-          <p>👆 Chọn khách sạn để xem danh sách phòng</p>
+          <p>Chọn khách sạn để xem danh sách phòng</p>
         </div>
       )}
     </div>

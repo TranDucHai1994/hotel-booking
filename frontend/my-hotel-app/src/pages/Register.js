@@ -1,24 +1,51 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { FaHotel, FaUser, FaEnvelope, FaLock, FaPhone } from 'react-icons/fa';
 
 export default function Register() {
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', password: '' });
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirm_password: '',
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    if (form.password !== form.confirm_password) {
+      setError('Mật khẩu xác nhận chưa khớp');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await api.post('/auth/register', form);
-      navigate('/login');
+      const payload = {
+        full_name: form.full_name.trim(),
+        email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim(),
+        password: form.password,
+      };
+      const res = await api.post('/auth/register', payload);
+      if (res.data?.token && res.data?.user) {
+        login(res.data.user, res.data.token);
+        navigate('/');
+      } else {
+        navigate('/login');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Đăng ký thất bại');
     }
+
     setLoading(false);
   };
 
@@ -47,6 +74,7 @@ export default function Register() {
             { icon: <FaEnvelope />, label: 'Email', key: 'email', type: 'email', placeholder: 'email@example.com' },
             { icon: <FaPhone />, label: 'Số điện thoại', key: 'phone', type: 'text', placeholder: '0901234567' },
             { icon: <FaLock />, label: 'Mật khẩu', key: 'password', type: 'password', placeholder: '••••••••' },
+            { icon: <FaLock />, label: 'Xác nhận mật khẩu', key: 'confirm_password', type: 'password', placeholder: '••••••••' },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-gray-700 text-sm font-medium mb-1">{field.label}</label>
@@ -56,7 +84,7 @@ export default function Register() {
                   type={field.type}
                   placeholder={field.placeholder}
                   value={form[field.key]}
-                  onChange={e => setForm({ ...form, [field.key]: e.target.value })}
+                  onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
                   className="outline-none w-full text-gray-700 text-sm"
                   required
                 />
@@ -64,15 +92,20 @@ export default function Register() {
             </div>
           ))}
 
-          <button type="submit" disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition disabled:opacity-50"
+          >
             {loading ? 'Đang đăng ký...' : 'Đăng ký'}
           </button>
         </form>
 
         <p className="text-center text-gray-500 text-sm mt-6">
           Đã có tài khoản?{' '}
-          <Link to="/login" className="text-blue-600 font-medium hover:underline">Đăng nhập</Link>
+          <Link to="/login" className="text-blue-600 font-medium hover:underline">
+            Đăng nhập
+          </Link>
         </p>
       </div>
     </div>

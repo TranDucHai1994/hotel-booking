@@ -19,6 +19,7 @@ app.use('/api/hotels', require('./routes/hotelRoutes'));
 app.use('/api/rooms', require('./routes/roomRoutes'));
 app.use('/api/bookings', require('./routes/bookingRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Test route
 app.get('/', (req, res) => res.json({ message: '✅ Hotel Booking API đang chạy!' }));

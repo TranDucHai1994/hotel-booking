@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { FaHotel, FaStar } from 'react-icons/fa';
+import { FaHotel } from 'react-icons/fa';
 
 const statusColor = {
   pending: 'bg-yellow-100 text-yellow-700',

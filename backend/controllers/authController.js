@@ -13,6 +13,10 @@ function sha256(input) {
   return crypto.createHash('sha256').update(input).digest('hex');
 }
 
+function normalizeEmail(email) {
+  return String(email || '').toLowerCase().trim();
+}
+
 function signAccessToken(user) {
   return jwt.sign(
     { id: String(user._id), role: user.role, email: user.email },
@@ -25,39 +29,62 @@ function newOpaqueToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-// Đăng ký
 exports.register = async (req, res) => {
   const { full_name, email, phone, password } = req.body;
   try {
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: 'Email đã tồn tại' });
-    const hash = await bcrypt.hash(password, 10);
-    await User.create({ full_name, email, phone, password_hash: hash });
-    res.status(201).json({ message: 'Đăng ký thành công' });
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedName = String(full_name || '').trim();
+    const normalizedPhone = String(phone || '').trim();
+    const normalizedPassword = String(password || '');
+
+    if (!normalizedName || !normalizedEmail || !normalizedPassword) {
+      return res.status(400).json({ message: 'Thieu ho ten, email hoac mat khau' });
+    }
+
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) return res.status(400).json({ message: 'Email da ton tai' });
+
+    const hash = await bcrypt.hash(normalizedPassword, 10);
+    const user = await User.create({
+      full_name: normalizedName,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      password_hash: hash,
+      role: 'customer',
+      status: 'active',
+    });
+
+    const token = signAccessToken(user);
+    await logAudit({ userId: user._id, action: 'register', entity: 'auth', entityId: null });
+
+    res.status(201).json({
+      message: 'Dang ky thanh cong',
+      token,
+      user: { id: user._id, full_name: user.full_name, role: user.role, email: user.email, phone: user.phone },
+    });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    res.status(500).json({ message: 'Loi server', error: err.message });
   }
 };
 
-// Đăng nhập
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Email không tồn tại' });
+    const user = await User.findOne({ email: normalizeEmail(email) });
+    if (!user) return res.status(400).json({ message: 'Email khong ton tai' });
 
-    if (user.deleted_at) return res.status(403).json({ message: 'Tài khoản đã bị vô hiệu hóa' });
-    if (user.status === 'disabled') return res.status(403).json({ message: 'Tài khoản đã bị vô hiệu hóa' });
-    if (user.status === 'locked') return res.status(403).json({ message: 'Tài khoản đang bị khóa' });
+    if (user.deleted_at) return res.status(403).json({ message: 'Tai khoan da bi vo hieu hoa' });
+    if (user.status === 'disabled') return res.status(403).json({ message: 'Tai khoan da bi vo hieu hoa' });
+    if (user.status === 'locked') return res.status(403).json({ message: 'Tai khoan dang bi khoa' });
 
-    const match = await bcrypt.compare(password, user.password_hash);
+    const match = await bcrypt.compare(String(password || ''), user.password_hash);
 
     if (!match) {
       const nextFailed = Number(user.failed_attempts || 0) + 1;
       const update = { failed_attempts: nextFailed };
       if (nextFailed >= MAX_FAILED_LOGIN_ATTEMPTS) update.status = 'locked';
       await User.updateOne({ _id: user._id }, update);
-      return res.status(400).json({ message: 'Sai mật khẩu' });
+      return res.status(400).json({ message: 'Sai mat khau' });
     }
 
     const refreshToken = newOpaqueToken();
@@ -74,42 +101,40 @@ exports.login = async (req, res) => {
     res.json({
       token,
       refresh_token: refreshToken,
-      user: { id: user._id, full_name: user.full_name, role: user.role, email: user.email, phone: user.phone }
+      user: { id: user._id, full_name: user.full_name, role: user.role, email: user.email, phone: user.phone },
     });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    res.status(500).json({ message: 'Loi server', error: err.message });
   }
 };
 
-// Refresh access token
 exports.refresh = async (req, res) => {
   const { refresh_token } = req.body;
-  if (!refresh_token) return res.status(400).json({ message: 'Thiếu refresh_token' });
+  if (!refresh_token) return res.status(400).json({ message: 'Thieu refresh_token' });
   try {
     const tokenHash = sha256(refresh_token);
     const user = await User.findOne({ refresh_token_hash: tokenHash });
-    if (!user) return res.status(401).json({ message: 'Refresh token không hợp lệ' });
-    if (user.deleted_at) return res.status(403).json({ message: 'Tài khoản đã bị vô hiệu hóa' });
-    if (user.status !== 'active') return res.status(403).json({ message: 'Tài khoản không hoạt động' });
-    if (!user.refresh_token_expiry || user.refresh_token_expiry < new Date())
-      return res.status(401).json({ message: 'Refresh token đã hết hạn' });
+    if (!user) return res.status(401).json({ message: 'Refresh token khong hop le' });
+    if (user.deleted_at) return res.status(403).json({ message: 'Tai khoan da bi vo hieu hoa' });
+    if (user.status !== 'active') return res.status(403).json({ message: 'Tai khoan khong hoat dong' });
+    if (!user.refresh_token_expiry || user.refresh_token_expiry < new Date()) {
+      return res.status(401).json({ message: 'Refresh token da het han' });
+    }
 
     const accessToken = signAccessToken(user);
     res.json({ token: accessToken });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    res.status(500).json({ message: 'Loi server', error: err.message });
   }
 };
 
-// Forgot password
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
-  if (!email) return res.status(400).json({ message: 'Thiếu email' });
+  if (!email) return res.status(400).json({ message: 'Thieu email' });
   try {
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
-    // Always respond success to avoid user enumeration
+    const user = await User.findOne({ email: normalizeEmail(email) });
     if (!user || user.deleted_at || user.status === 'disabled') {
-      return res.json({ message: 'Nếu email tồn tại, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu' });
+      return res.json({ message: 'Neu email ton tai, chung toi se gui huong dan dat lai mat khau' });
     }
 
     const rawToken = newOpaqueToken();
@@ -117,29 +142,29 @@ exports.forgotPassword = async (req, res) => {
     user.reset_password_expiry = new Date(Date.now() + RESET_PASSWORD_EXPIRES_MINUTES * 60 * 1000);
     await user.save();
 
-    // If SMTP is not configured, don't break flow; still return generic message.
-    // Optional: expose token only in non-production for testing.
-    const response = { message: 'Nếu email tồn tại, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu' };
+    const response = { message: 'Neu email ton tai, chung toi se gui huong dan dat lai mat khau' };
     if ((process.env.NODE_ENV || '').toLowerCase() !== 'production' && process.env.EXPOSE_RESET_TOKEN === 'true') {
       response.reset_token = rawToken;
     }
     return res.json(response);
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    res.status(500).json({ message: 'Loi server', error: err.message });
   }
 };
 
-// Reset password
 exports.resetPassword = async (req, res) => {
   const { token, new_password } = req.body;
-  if (!token || !new_password) return res.status(400).json({ message: 'Thiếu token hoặc mật khẩu mới' });
+  if (!token || !new_password) return res.status(400).json({ message: 'Thieu token hoac mat khau moi' });
   try {
     const tokenHash = sha256(token);
     const user = await User.findOne({ reset_password_token_hash: tokenHash });
-    if (!user) return res.status(400).json({ message: 'Token không hợp lệ' });
-    if (!user.reset_password_expiry || user.reset_password_expiry < new Date())
-      return res.status(400).json({ message: 'Token đã hết hạn' });
-    if (user.deleted_at || user.status === 'disabled') return res.status(403).json({ message: 'Tài khoản đã bị vô hiệu hóa' });
+    if (!user) return res.status(400).json({ message: 'Token khong hop le' });
+    if (!user.reset_password_expiry || user.reset_password_expiry < new Date()) {
+      return res.status(400).json({ message: 'Token da het han' });
+    }
+    if (user.deleted_at || user.status === 'disabled') {
+      return res.status(403).json({ message: 'Tai khoan da bi vo hieu hoa' });
+    }
 
     user.password_hash = await bcrypt.hash(new_password, 10);
     user.reset_password_token_hash = null;
@@ -147,13 +172,12 @@ exports.resetPassword = async (req, res) => {
     user.failed_attempts = 0;
     user.status = user.status === 'locked' ? 'active' : user.status;
     await user.save();
-    res.json({ message: 'Đặt lại mật khẩu thành công' });
+    res.json({ message: 'Dat lai mat khau thanh cong' });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    res.status(500).json({ message: 'Loi server', error: err.message });
   }
 };
 
-// Cập nhật profile
 exports.updateProfile = async (req, res) => {
   try {
     const { full_name, phone } = req.body;
@@ -163,30 +187,30 @@ exports.updateProfile = async (req, res) => {
       { new: true }
     );
     res.json({
-      message: 'Cập nhật thành công',
-      user: { id: user._id, full_name: user.full_name, role: user.role, email: user.email, phone: user.phone }
+      message: 'Cap nhat thanh cong',
+      user: { id: user._id, full_name: user.full_name, role: user.role, email: user.email, phone: user.phone },
     });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    res.status(500).json({ message: 'Loi server', error: err.message });
   }
 };
 
-// Đổi mật khẩu
 exports.changePassword = async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
-    if (user.deleted_at || user.status === 'disabled') return res.status(403).json({ message: 'Tài khoản đã bị vô hiệu hóa' });
+    if (!user) return res.status(404).json({ message: 'Khong tim thay tai khoan' });
+    if (user.deleted_at || user.status === 'disabled') {
+      return res.status(403).json({ message: 'Tai khoan da bi vo hieu hoa' });
+    }
     const match = await bcrypt.compare(current_password, user.password_hash);
-    if (!match) return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });
+    if (!match) return res.status(400).json({ message: 'Mat khau hien tai khong dung' });
     user.password_hash = await bcrypt.hash(new_password, 10);
-    // Rotate refresh token by invalidating existing one
     user.refresh_token_hash = null;
     user.refresh_token_expiry = null;
     await user.save();
-    res.json({ message: 'Đổi mật khẩu thành công' });
+    res.json({ message: 'Doi mat khau thanh cong' });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    res.status(500).json({ message: 'Loi server', error: err.message });
   }
 };

@@ -14,6 +14,7 @@ import AdminHotels from './pages/admin/Hotels';
 import AdminRooms from './pages/admin/Rooms';
 import AdminBookings from './pages/admin/Bookings';
 import AdminUsers from './pages/admin/Users';
+import AdminFeedbacks from './pages/admin/Feedbacks';
 import AdminRoute from './components/AdminRoute';
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
                 <Route path="/admin/hotels" element={<AdminHotels />} />
                 <Route path="/admin/rooms" element={<AdminRooms />} />
                 <Route path="/admin/bookings" element={<AdminBookings />} />
+                <Route path="/admin/feedbacks" element={<AdminFeedbacks />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
               </Route>
             </Routes>

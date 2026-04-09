@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import SafeImage from '../../components/SafeImage';
 
 export default function AdminHotels() {
   const [hotels, setHotels] = useState([]);
@@ -200,9 +201,16 @@ export default function AdminHotels() {
         {hotels.map(hotel => (
           <div key={hotel._id} className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
             <div className="h-40 overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600">
-              {hotel.cover_image && (
-                <img src={hotel.cover_image} alt={hotel.name} className="w-full h-full object-cover" />
-              )}
+              <SafeImage
+                src={hotel.cover_image}
+                sources={hotel.images || []}
+                alt={hotel.name}
+                className="w-full h-full object-cover"
+                wrapperClassName="h-40 w-full"
+                fallbackClassName="h-40 w-full"
+                title={hotel.name}
+                subtitle={hotel.city}
+              />
             </div>
             <div className="p-4">
               <h3 className="font-bold text-gray-800 truncate">{hotel.name}</h3>

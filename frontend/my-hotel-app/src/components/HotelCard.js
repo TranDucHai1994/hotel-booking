@@ -1,88 +1,108 @@
 import { Link } from 'react-router-dom';
 import { FaMapMarkerAlt, FaStar } from 'react-icons/fa';
-import { MdHotel } from 'react-icons/md';
+import SafeImage from './SafeImage';
 
-export default function HotelCard({ hotel }) {
+function buildDetailLink(hotelId, searchQuery) {
+  return searchQuery ? `/hotels/${hotelId}?${searchQuery}` : `/hotels/${hotelId}`;
+}
+
+export default function HotelCard({ hotel, searchQuery = '' }) {
   const stars = Math.max(0, Math.min(5, Number(hotel.star_rating || 0)));
-  return (
-    <Link to={`/hotels/${hotel._id}`}
-      className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer block">
+  const ratingValue = hotel.average_rating ? Number(hotel.average_rating).toFixed(1) : stars ? `${stars}.0` : null;
+  const imageSources = [hotel.cover_image, ...(hotel.images || [])].filter(Boolean);
 
-      {/* Ảnh */}
-      <div className="relative overflow-hidden h-52">
-        {hotel.cover_image ? (
-          <img
-            src={hotel.cover_image}
-            alt={hotel.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-            <MdHotel className="text-white text-6xl opacity-50" />
+  return (
+    <Link
+      to={buildDetailLink(hotel._id, searchQuery)}
+      className="group flex h-full flex-col rounded-[28px] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+    >
+      <div className="relative overflow-hidden rounded-t-[28px]">
+        <SafeImage
+          src={imageSources[0]}
+          sources={imageSources.slice(1)}
+          alt={hotel.name}
+          className="h-56 w-full object-cover transition duration-500 group-hover:scale-105"
+          wrapperClassName="h-56 w-full"
+          fallbackClassName="h-56 w-full"
+          title={hotel.name}
+          subtitle={hotel.city}
+        />
+
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+        <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            {hotel.is_hot_deal && (
+              <span className="rounded-full bg-rose-600 px-3 py-1 text-xs font-bold text-white shadow-lg">
+                Hot deal{hotel.hot_deal_discount_percent ? ` -${hotel.hot_deal_discount_percent}%` : ''}
+              </span>
+            )}
+            {hotel.property_type && (
+              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow">
+                {hotel.property_type}
+              </span>
+            )}
           </div>
-        )}
-        <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
-          {hotel.is_hot_deal && (
-            <div className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow">
-              🔥 Hot deal{hotel.hot_deal_discount_percent ? ` -${hotel.hot_deal_discount_percent}%` : ''}
-            </div>
-          )}
-          {hotel.property_type && (
-            <div className="bg-white px-2 py-1 rounded-full text-xs font-bold text-gray-700 shadow">
-              {hotel.property_type}
-            </div>
-          )}
+
+          {hotel.available_room_count > 0 ? (
+            <span className="rounded-full bg-emerald-50/95 px-3 py-1 text-xs font-semibold text-emerald-700 shadow">
+              Còn {hotel.available_room_count} phòng
+            </span>
+          ) : null}
         </div>
       </div>
 
-      {/* Nội dung */}
-      <div className="p-4">
-        <h3 className="font-bold text-gray-800 text-lg mb-1 truncate">{hotel.name}</h3>
-
-        <div className="flex items-center gap-1 text-gray-500 text-sm mb-2">
-          <FaMapMarkerAlt className="text-blue-500 flex-shrink-0" />
-          <span className="truncate">{hotel.city}</span>
+      <div className="flex flex-1 flex-col p-5">
+        <div className="mb-3">
+          <h3 className="line-clamp-2 text-lg font-bold text-slate-900">{hotel.name}</h3>
+          <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+            <FaMapMarkerAlt className="shrink-0 text-blue-500" />
+            <span className="truncate">{hotel.city}</span>
+          </div>
         </div>
 
-        <p className="text-gray-500 text-sm mb-3 line-clamp-2">{hotel.description}</p>
+        <p className="mb-4 line-clamp-2 text-sm leading-6 text-slate-500">
+          {hotel.description || 'Khách sạn đang được cập nhật thêm mô tả chi tiết.'}
+        </p>
 
-        {/* Amenities */}
         {hotel.amenities?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {hotel.amenities.slice(0, 3).map((a, i) => (
-              <span key={i} className="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded-full">{a}</span>
+          <div className="mb-5 flex flex-wrap gap-2">
+            {hotel.amenities.slice(0, 3).map((item, index) => (
+              <span key={index} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                {item}
+              </span>
             ))}
             {hotel.amenities.length > 3 && (
-              <span className="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full">
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
                 +{hotel.amenities.length - 3}
               </span>
             )}
           </div>
         )}
 
-        {/* Giá & Rating */}
-        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+        <div className="mt-auto flex items-end justify-between border-t border-slate-100 pt-4">
           <div>
             {hotel.min_price ? (
               <>
-                <span className="text-gray-400 text-xs">Từ </span>
-                <span className="text-blue-600 font-bold text-lg">
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Giá từ</span>
+                <div className="mt-1 text-lg font-bold text-blue-700">
                   {Number(hotel.min_price).toLocaleString('vi-VN')}đ
-                </span>
-                <span className="text-gray-400 text-xs">/đêm</span>
+                  <span className="ml-1 text-xs font-medium text-slate-400">/đêm</span>
+                </div>
               </>
             ) : (
-              <span className="text-gray-400 text-sm">Chưa có phòng</span>
+              <span className="text-sm text-slate-400">Chưa có phòng phù hợp</span>
             )}
           </div>
+
           <div className="flex items-center gap-2">
-            {stars > 0 ? (
-              <div className="flex items-center gap-1 text-yellow-500">
+            {ratingValue ? (
+              <div className="flex items-center gap-1.5 text-amber-500">
                 <FaStar />
-                <span className="text-gray-700 text-sm font-semibold">{stars}.0</span>
+                <span className="text-sm font-semibold text-slate-700">{ratingValue}</span>
+                {hotel.review_count ? <span className="text-xs text-slate-400">({hotel.review_count})</span> : null}
               </div>
             ) : (
-              <span className="text-gray-400 text-xs">Chưa xếp hạng</span>
+              <span className="text-xs text-slate-400">Chưa có đánh giá</span>
             )}
           </div>
         </div>

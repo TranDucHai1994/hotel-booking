@@ -6,6 +6,11 @@ const roomSchema = new mongoose.Schema({
   max_guests: { type: Number, default: 2 },
   price_per_night: { type: Number, required: true },
   total_quantity: { type: Number, default: 1 },
+  status: {
+    type: String,
+    enum: ['available', 'maintenance', 'inactive'],
+    default: 'available',
+  },
   description: { type: String, default: '' },
   amenities: [String],
 }, { timestamps: true });

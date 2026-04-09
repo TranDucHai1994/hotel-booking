@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const badge = (status) => {
   if (status === 'active') return 'bg-green-50 text-green-700';
@@ -17,6 +18,7 @@ const statusText = (status) => {
 };
 
 export default function AdminUsers() {
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -104,6 +106,17 @@ export default function AdminUsers() {
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
     </div>
   );
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Không có quyền truy cập</h1>
+          <p className="text-gray-500">Chỉ tài khoản admin mới được quản lý người dùng.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

@@ -15,15 +15,19 @@ api.interceptors.response.use(
   (error) => {
     const status = error?.response?.status;
     const message = error?.response?.data?.message;
-    const isAuthError =
-      status === 401 ||
-      (status === 403 && (message === 'Token không hợp lệ' || message === 'Không có token'));
+    const authMessages = [
+      'Token khong hop le',
+      'Khong co token',
+      'Token không hợp lệ',
+      'Không có token',
+    ];
+
+    const isAuthError = status === 401 || (status === 403 && authMessages.includes(message));
 
     if (isAuthError) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       try {
-        // Avoid redirect loops if backend is down
         if (window.location.pathname !== '/login') window.location.assign('/login');
       } catch {
         // ignore
