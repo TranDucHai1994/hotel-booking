@@ -1,7 +1,4 @@
-const Booking = require('../models/Booking');
-const Feedback = require('../models/Feedback');
-const Hotel = require('../models/Hotel');
-const Room = require('../models/Room');
+const { query } = require('../config/db');
 const {
   calculateOverlapNights,
   computeStayNights,
@@ -32,7 +29,7 @@ exports.getDashboardStats = async (req, res) => {
     const dateRange = normalizeDateRange(rawFrom, rawTo);
 
     if (!dateRange.hasRange || !dateRange.isValid) {
-      return res.status(400).json({ message: 'Khoang ngay khong hop le' });
+      return res.status(400).json({ message: 'Khoảng ngày không hợp lệ' });
     }
 
     const from = dateRange.checkIn;
@@ -41,21 +38,43 @@ exports.getDashboardStats = async (req, res) => {
     const rangeEndExclusive = new Date(to);
     rangeEndExclusive.setDate(rangeEndExclusive.getDate() + 1);
 
-    const [hotels, rooms, bookings, feedbackCount] = await Promise.all([
-      Hotel.find().lean(),
-      Room.find().lean(),
-      Booking.find({
-        createdAt: {
-          $gte: parseDateStart(rawFrom),
-          $lte: inclusiveEnd,
-        },
-      })
-        .populate('hotel_id', 'name')
-        .populate('room_id', 'room_type total_quantity')
-        .populate('user_id', 'full_name email')
-        .lean(),
-      Feedback.countDocuments(),
+    const [hotelsResult, roomsResult, bookingsResult, feedbackCountResult] = await Promise.all([
+      query('SELECT * FROM dbo.Hotels;'),
+      query('SELECT * FROM dbo.Rooms;'),
+      query(
+        `
+          SELECT
+            b.*,
+            h.name AS hotel_name,
+            r.room_type,
+            r.total_quantity AS room_total_quantity,
+            u.full_name AS user_full_name,
+            u.email AS user_email
+          FROM dbo.Bookings b
+          INNER JOIN dbo.Hotels h ON h.id = b.hotel_id
+          INNER JOIN dbo.Rooms r ON r.id = b.room_id
+          LEFT JOIN dbo.Users u ON u.id = b.user_id
+          WHERE b.created_at >= @fromDate
+            AND b.created_at <= @toDate;
+        `,
+        {
+          fromDate: parseDateStart(rawFrom),
+          toDate: inclusiveEnd,
+        }
+      ),
+      query('SELECT COUNT(*) AS count FROM dbo.Feedbacks;'),
     ]);
+
+    const hotels = hotelsResult.recordset;
+    const rooms = roomsResult.recordset;
+    const bookings = bookingsResult.recordset.map((row) => ({
+      ...row,
+      total_amount: Number(row.total_amount || 0),
+      room_total_quantity: Number(row.room_total_quantity || 0),
+      user_display_name: row.user_full_name || row.guest_name || 'Khách vãng lai',
+      user_display_email: row.user_email || row.guest_email || '',
+    }));
+    const feedbackCount = Number(feedbackCountResult.recordset[0]?.count || 0);
 
     const confirmed = bookings.filter((item) => item.status === 'confirmed');
     const pending = bookings.filter((item) => item.status === 'pending');
@@ -97,7 +116,7 @@ exports.getDashboardStats = async (req, res) => {
     }
 
     confirmed.filter(isCollected).forEach((booking) => {
-      const key = toDateKey(booking.createdAt);
+      const key = toDateKey(booking.created_at);
       if (Object.prototype.hasOwnProperty.call(trendMap, key)) {
         trendMap[key] += Number(booking.total_amount || 0);
       }
@@ -111,14 +130,16 @@ exports.getDashboardStats = async (req, res) => {
 
     const hotelRevenueMap = new Map();
     confirmed.filter(isCollected).forEach((booking) => {
-      const hotelId = String(booking.hotel_id?._id || booking.hotel_id || '');
+      const hotelId = String(booking.hotel_id || '');
       if (!hotelId) return;
+
       const current = hotelRevenueMap.get(hotelId) || {
         hotel_id: hotelId,
-        hotel_name: booking.hotel_id?.name || 'Khach san',
+        hotel_name: booking.hotel_name || 'Khách sạn',
         revenue_paid: 0,
         bookings_count: 0,
       };
+
       current.revenue_paid += Number(booking.total_amount || 0);
       current.bookings_count += 1;
       hotelRevenueMap.set(hotelId, current);
@@ -130,30 +151,31 @@ exports.getDashboardStats = async (req, res) => {
 
     const methodsPaidRevenue = confirmed
       .filter(isCollected)
-      .reduce((acc, booking) => {
+      .reduce((accumulator, booking) => {
         const method = booking.payment_method || 'unknown';
-        acc[method] = (acc[method] || 0) + Number(booking.total_amount || 0);
-        return acc;
+        accumulator[method] = (accumulator[method] || 0) + Number(booking.total_amount || 0);
+        return accumulator;
       }, {});
 
     const recentBookings = bookings
       .slice()
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 8)
       .map((booking) => ({
-        id: booking._id,
-        createdAt: booking.createdAt,
-        hotel_name: booking.hotel_id?.name || '',
-        room_type: booking.room_id?.room_type || '',
-        user_name: booking.user_id?.full_name || '',
-        user_email: booking.user_id?.email || '',
+        id: booking.id,
+        createdAt: booking.created_at,
+        hotel_name: booking.hotel_name || '',
+        room_type: booking.room_type || '',
+        user_name: booking.user_display_name,
+        user_email: booking.user_display_email,
         amount: Number(booking.total_amount || 0),
         status: booking.status,
         payment_status: booking.payment_status,
         payment_method: booking.payment_method,
+        booking_source: booking.booking_source,
       }));
 
-    res.json({
+    return res.json({
       summary: {
         hotels: hotels.length,
         rooms: rooms.length,
@@ -176,7 +198,7 @@ exports.getDashboardStats = async (req, res) => {
       payment_breakdown: {
         paid: paidCount,
         unpaid: confirmed.filter((item) => !isCollected(item) && item.payment_status !== 'refunded').length,
-        refunded: confirmed.filter((item) => item.payment_status === 'refunded').length,
+        refunded: bookings.filter((item) => item.payment_status === 'refunded').length,
         paid_revenue: revenuePaid,
         refunded_revenue: refunds,
         methods_paid_revenue: methodsPaidRevenue,
@@ -187,6 +209,6 @@ exports.getDashboardStats = async (req, res) => {
       range: { from: rawFrom, to: rawTo },
     });
   } catch (err) {
-    res.status(500).json({ message: 'Loi server', error: err.message });
+    return res.status(500).json({ message: 'Lỗi server', error: err.message });
   }
 };

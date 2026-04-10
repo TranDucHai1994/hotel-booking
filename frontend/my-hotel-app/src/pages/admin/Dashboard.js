@@ -3,10 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { FaBed, FaCalendarCheck, FaCommentDots, FaHotel, FaMoneyBillWave, FaUsers } from 'react-icons/fa';
-
-function formatVND(value) {
-  return `${Number(value || 0).toLocaleString('vi-VN')}đ`;
-}
+import { formatCurrencyVND, formatDateTimeVi } from '../../utils/format';
 
 function RevenueBars({ data }) {
   const max = Math.max(...data.map((item) => Number(item.value || 0)), 0);
@@ -20,7 +17,7 @@ function RevenueBars({ data }) {
             <div
               className="bg-blue-500 rounded-t-xl w-full"
               style={{ height }}
-              title={`${item.label}: ${formatVND(item.value)}`}
+              title={`${item.label}: ${formatCurrencyVND(item.value)}`}
             />
             <p className="text-[11px] text-center text-gray-500 mt-2 truncate">{item.label}</p>
           </div>
@@ -170,7 +167,7 @@ export default function Dashboard() {
             {[
               { label: 'Khách sạn', value: summary.hotels, icon: <FaHotel /> },
               { label: 'Tổng booking', value: summary.bookings, icon: <FaCalendarCheck /> },
-              { label: 'Doanh thu đã thu', value: formatVND(summary.revenue_paid), icon: <FaMoneyBillWave /> },
+              { label: 'Doanh thu đã thu', value: formatCurrencyVND(summary.revenue_paid), icon: <FaMoneyBillWave /> },
               { label: 'Tỷ lệ lấp đầy', value: `${Number(summary.occupancy_rate || 0).toFixed(1)}%`, icon: <FaBed /> },
               { label: 'Sức chứa phòng', value: summary.room_inventory, icon: <FaBed /> },
               { label: 'Phản hồi', value: summary.feedback_count, icon: <FaCommentDots /> },
@@ -194,7 +191,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-500">Tổng</p>
-                  <p className="font-bold text-gray-800">{formatVND(summary.revenue_paid)}</p>
+                  <p className="font-bold text-gray-800">{formatCurrencyVND(summary.revenue_paid)}</p>
                 </div>
               </div>
               {loading ? <div className="text-gray-500 text-sm">Đang tải...</div> : <RevenueBars data={data.trend_revenue || []} />}
@@ -208,7 +205,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-500">Lợi nhuận ước tính</p>
-                  <p className="font-bold text-gray-800">{formatVND(summary.profit)}</p>
+                  <p className="font-bold text-gray-800">{formatCurrencyVND(summary.profit)}</p>
                 </div>
               </div>
 
@@ -257,7 +254,7 @@ export default function Dashboard() {
                           <p className="font-semibold text-gray-800">#{index + 1} {item.hotel_name}</p>
                           <p className="text-xs text-gray-500">{item.bookings_count} booking xác nhận</p>
                         </div>
-                        <p className="font-bold text-blue-700">{formatVND(item.revenue_paid)}</p>
+                        <p className="font-bold text-blue-700">{formatCurrencyVND(item.revenue_paid)}</p>
                       </div>
                     </div>
                   ))}
@@ -283,10 +280,10 @@ export default function Dashboard() {
                         <div>
                           <p className="font-semibold text-gray-800">{item.hotel_name}</p>
                           <p className="text-sm text-gray-500">{item.user_name} · {item.room_type}</p>
-                          <p className="text-xs text-gray-400 mt-1">{new Date(item.createdAt).toLocaleString('vi-VN')}</p>
+                          <p className="text-xs text-gray-400 mt-1">{formatDateTimeVi(item.createdAt)}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-blue-700">{formatVND(item.amount)}</p>
+                          <p className="font-bold text-blue-700">{formatCurrencyVND(item.amount)}</p>
                           <p className="text-xs text-gray-500">{item.status}</p>
                         </div>
                       </div>

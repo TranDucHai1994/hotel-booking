@@ -16,36 +16,39 @@ import AdminBookings from './pages/admin/Bookings';
 import AdminUsers from './pages/admin/Users';
 import AdminFeedbacks from './pages/admin/Feedbacks';
 import AdminRoute from './components/AdminRoute';
+import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <div className="flex flex-col min-h-screen">
-          <Navbar />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/hotels" element={<Home />} />
-              <Route path="/hotels/:id" element={<HotelDetail />} />
-              <Route path="/book/:hotelId/:roomId" element={<BookingPage />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/my-bookings" element={<MyBookings />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route element={<AdminRoute />}>
-                <Route path="/admin" element={<Dashboard />} />
-                <Route path="/admin/hotels" element={<AdminHotels />} />
-                <Route path="/admin/rooms" element={<AdminRooms />} />
-                <Route path="/admin/bookings" element={<AdminBookings />} />
-                <Route path="/admin/feedbacks" element={<AdminFeedbacks />} />
-                <Route path="/admin/users" element={<AdminUsers />} />
-              </Route>
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <div className="flex min-h-screen flex-col transition-colors duration-300">
+            <Navbar />
+            <main className="flex-1">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/hotels" element={<Home />} />
+                <Route path="/hotels/:id" element={<HotelDetail />} />
+                <Route path="/book/:hotelId/:roomId" element={<BookingPage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/my-bookings" element={<MyBookings />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route element={<AdminRoute />}>
+                  <Route path="/admin" element={<Dashboard />} />
+                  <Route path="/admin/hotels" element={<AdminHotels />} />
+                  <Route path="/admin/rooms" element={<AdminRooms />} />
+                  <Route path="/admin/bookings" element={<AdminBookings />} />
+                  <Route path="/admin/feedbacks" element={<AdminFeedbacks />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                </Route>
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </BrowserRouter>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

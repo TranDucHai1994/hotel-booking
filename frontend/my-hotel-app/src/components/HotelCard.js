@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FaMapMarkerAlt, FaStar } from 'react-icons/fa';
 import SafeImage from './SafeImage';
+import { formatCurrencyVND } from '../utils/format';
 
 function buildDetailLink(hotelId, searchQuery) {
   return searchQuery ? `/hotels/${hotelId}?${searchQuery}` : `/hotels/${hotelId}`;
@@ -85,7 +86,7 @@ export default function HotelCard({ hotel, searchQuery = '' }) {
               <>
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Giá từ</span>
                 <div className="mt-1 text-lg font-bold text-blue-700">
-                  {Number(hotel.min_price).toLocaleString('vi-VN')}đ
+                  {formatCurrencyVND(hotel.min_price)}
                   <span className="ml-1 text-xs font-medium text-slate-400">/đêm</span>
                 </div>
               </>

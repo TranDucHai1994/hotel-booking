@@ -1,15 +1,36 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
-import { FaMapMarkerAlt, FaStar, FaCalendarAlt, FaHotel, FaImage } from 'react-icons/fa';
+import {
+  FaCalendarAlt,
+  FaExternalLinkAlt,
+  FaHotel,
+  FaImage,
+  FaMapMarkerAlt,
+  FaRoute,
+  FaStar,
+} from 'react-icons/fa';
 import SafeImage from '../components/SafeImage';
+import { formatCurrencyVND } from '../utils/format';
 
 function statusLabel(status) {
   if (status === 'full') return { text: 'Hết phòng', className: 'bg-red-50 text-red-600' };
   if (status === 'limited') return { text: 'Sắp hết', className: 'bg-yellow-50 text-yellow-700' };
   if (status === 'maintenance') return { text: 'Bảo trì', className: 'bg-gray-100 text-gray-600' };
-  if (status === 'inactive') return { text: 'Ngưng bán', className: 'bg-gray-100 text-gray-600' };
+  if (status === 'inactive') return { text: 'Ngừng bán', className: 'bg-gray-100 text-gray-600' };
   return { text: 'Còn phòng', className: 'bg-emerald-50 text-emerald-700' };
+}
+
+function applyStayDates(searchParams, checkIn, checkOut) {
+  if (checkIn && checkOut) {
+    searchParams.set('check_in', checkIn);
+    searchParams.set('check_out', checkOut);
+    return searchParams;
+  }
+
+  searchParams.delete('check_in');
+  searchParams.delete('check_out');
+  return searchParams;
 }
 
 export default function HotelDetail() {
@@ -41,8 +62,8 @@ export default function HotelDetail() {
         }
         const res = await api.get(`/hotels/${id}`, { params });
         setHotel(res.data);
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
         setHotel(null);
       }
       setLoading(false);
@@ -51,17 +72,9 @@ export default function HotelDetail() {
     fetchHotel();
   }, [id, searchParams]);
 
-  const handleApplyFilter = (e) => {
-    e.preventDefault();
-    const nextParams = new URLSearchParams(searchParams);
-    if (filters.check_in && filters.check_out) {
-      nextParams.set('check_in', filters.check_in);
-      nextParams.set('check_out', filters.check_out);
-    } else {
-      nextParams.delete('check_in');
-      nextParams.delete('check_out');
-    }
-    setSearchParams(nextParams);
+  const handleApplyFilter = (event) => {
+    event.preventDefault();
+    setSearchParams(applyStayDates(new URLSearchParams(searchParams), filters.check_in, filters.check_out));
   };
 
   const gallery = useMemo(() => {
@@ -72,42 +85,48 @@ export default function HotelDetail() {
       return true;
     });
   }, [hotel]);
-  const featuredSources = gallery;
-  const secondaryImages = (hotel?.images || []).filter(Boolean);
+
+  const mapQuery = hotel?.map_query || [hotel?.name, hotel?.address, hotel?.city].filter(Boolean).join(', ');
+  const mapUrl = mapQuery
+    ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`
+    : '';
+  const mapLink = mapQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+    : '';
 
   if (loading) {
     return (
       <div className="flex justify-center py-40">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (!hotel) {
-    return <div className="text-center py-20 text-gray-400">Không tìm thấy khách sạn</div>;
+    return <div className="py-20 text-center text-gray-400">Không tìm thấy khách sạn</div>;
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="mb-8 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="flex flex-wrap items-center gap-3 mb-3">
-            <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
               {hotel.property_type || 'hotel'}
             </span>
             {Number(hotel.star_rating || 0) > 0 && (
-              <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
+              <span className="rounded-full bg-yellow-50 px-3 py-1 text-sm font-semibold text-yellow-700">
                 {'★'.repeat(Number(hotel.star_rating))}
               </span>
             )}
             {hotel.review_count ? (
-              <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold">
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">
                 {Number(hotel.average_rating || 0).toFixed(1)} / 5 ({hotel.review_count} đánh giá)
               </span>
             ) : null}
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">{hotel.name}</h1>
+          <h1 className="mb-2 text-3xl font-bold text-gray-800">{hotel.name}</h1>
           <div className="flex flex-wrap items-center gap-4 text-gray-500">
             <span className="flex items-center gap-1">
               <FaMapMarkerAlt className="text-blue-500" />
@@ -115,7 +134,7 @@ export default function HotelDetail() {
             </span>
             {hotel.min_price ? (
               <span className="font-semibold text-blue-600">
-                Từ {Number(hotel.min_price).toLocaleString('vi-VN')}đ / đêm
+                Từ {formatCurrencyVND(hotel.min_price)} / đêm
               </span>
             ) : null}
             <span className="text-sm text-gray-500">
@@ -124,69 +143,75 @@ export default function HotelDetail() {
           </div>
         </div>
 
-        <form onSubmit={handleApplyFilter} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 w-full lg:max-w-md">
-          <h2 className="font-bold text-gray-800 mb-3">Kiểm tra phòng trống</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
+        <form
+          onSubmit={handleApplyFilter}
+          className="w-full rounded-2xl border border-gray-100 bg-white p-4 shadow-sm lg:max-w-md"
+        >
+          <h2 className="mb-3 font-bold text-gray-800">Kiểm tra phòng trống</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2">
               <FaCalendarAlt className="text-blue-500" />
               <input
                 type="date"
                 value={filters.check_in}
                 min={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setFilters({ ...filters, check_in: e.target.value })}
-                className="w-full outline-none text-sm text-gray-700 bg-transparent"
+                onChange={(event) => setFilters({ ...filters, check_in: event.target.value })}
+                className="w-full bg-transparent text-sm text-gray-700 outline-none"
               />
             </div>
-            <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2">
               <FaCalendarAlt className="text-blue-500" />
               <input
                 type="date"
                 value={filters.check_out}
                 min={filters.check_in || new Date().toISOString().split('T')[0]}
-                onChange={(e) => setFilters({ ...filters, check_out: e.target.value })}
-                className="w-full outline-none text-sm text-gray-700 bg-transparent"
+                onChange={(event) => setFilters({ ...filters, check_out: event.target.value })}
+                className="w-full bg-transparent text-sm text-gray-700 outline-none"
               />
             </div>
           </div>
           <button
             type="submit"
-            className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold transition"
+            className="mt-3 w-full rounded-xl bg-blue-600 py-2.5 font-semibold text-white transition hover:bg-blue-700"
           >
             Áp dụng ngày
           </button>
         </form>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-800 mb-3">Giới thiệu</h2>
-            <p className="text-gray-600 leading-relaxed">{hotel.description || 'Chưa có mô tả cho khách sạn này.'}</p>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <h2 className="mb-3 text-xl font-bold text-gray-800">Giới thiệu</h2>
+            <p className="leading-relaxed text-gray-600">
+              {hotel.description || 'Khách sạn này chưa có mô tả chi tiết.'}
+            </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
               <FaImage className="text-blue-500" />
               <h2 className="text-xl font-bold text-gray-800">Hình ảnh</h2>
             </div>
-            {featuredSources.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {gallery.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <SafeImage
-                  src={featuredSources[0]}
-                  sources={featuredSources.slice(1)}
+                  src={gallery[0]}
+                  sources={gallery.slice(1)}
                   alt={hotel.name}
-                  className="h-80 w-full object-cover rounded-2xl"
+                  className="h-80 w-full rounded-2xl object-cover"
                   wrapperClassName="md:col-span-2"
                   fallbackClassName="h-80 w-full rounded-2xl"
                   title={hotel.name}
                   subtitle={hotel.city}
                 />
-                {secondaryImages.map((image, index) => (
+                {gallery.slice(1).map((image, index) => (
                   <SafeImage
                     key={`${image}-${index}`}
                     src={image}
                     alt={`${hotel.name}-${index + 2}`}
-                    className="h-56 w-full object-cover rounded-2xl"
+                    className="h-56 w-full rounded-2xl object-cover"
                     wrapperClassName=""
                     fallbackClassName="h-56 w-full rounded-2xl"
                     title={hotel.name}
@@ -195,18 +220,18 @@ export default function HotelDetail() {
                 ))}
               </div>
             ) : (
-              <div className="h-60 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-400">
+              <div className="flex h-60 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
                 Chưa có hình ảnh
               </div>
             )}
           </div>
 
           {hotel.amenities?.length > 0 && (
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Tiện ích khách sạn</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {hotel.amenities.map((item, index) => (
-                  <div key={index} className="bg-blue-50 px-3 py-2 rounded-xl text-sm text-gray-700">
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-xl font-bold text-gray-800">Tiện ích khách sạn</h2>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                {hotel.amenities.map((item) => (
+                  <div key={item} className="rounded-xl bg-blue-50 px-3 py-2 text-sm text-gray-700">
                     {item}
                   </div>
                 ))}
@@ -214,8 +239,47 @@ export default function HotelDetail() {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <FaRoute className="text-blue-500" />
+                <h2 className="text-xl font-bold text-gray-800">Bản đồ vị trí</h2>
+              </div>
+              {mapLink ? (
+                <a
+                  href={mapLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                >
+                  Mở Google Maps <FaExternalLinkAlt className="text-xs" />
+                </a>
+              ) : null}
+            </div>
+
+            <p className="mb-4 text-sm text-gray-500">
+              Bản đồ mô phỏng vị trí khách sạn dựa trên địa chỉ và tên khách sạn trong hệ thống.
+            </p>
+
+            {mapUrl ? (
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                <iframe
+                  title={`map-${hotel.name}`}
+                  src={mapUrl}
+                  loading="lazy"
+                  allowFullScreen
+                  className="h-80 w-full border-0"
+                />
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                Chưa có dữ liệu vị trí để hiển thị bản đồ
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
               <FaStar className="text-yellow-500" />
               <h2 className="text-xl font-bold text-gray-800">Đánh giá</h2>
             </div>
@@ -225,15 +289,15 @@ export default function HotelDetail() {
             ) : (
               <div className="space-y-4">
                 {hotel.feedbacks.map((item) => (
-                  <div key={item._id} className="border-b border-gray-100 pb-4">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div key={item._id} className="border-b border-gray-100 pb-4 last:border-b-0">
+                    <div className="mb-1 flex items-center gap-2">
                       <span className="font-medium text-gray-800">{item.user_id?.full_name}</span>
-                      <span className="text-yellow-500 text-sm">
+                      <span className="text-sm text-yellow-500">
                         {'★'.repeat(item.rating)}
                         {'☆'.repeat(5 - item.rating)}
                       </span>
                     </div>
-                    <p className="text-gray-600 text-sm">{item.content}</p>
+                    <p className="text-sm text-gray-600">{item.content}</p>
                   </div>
                 ))}
               </div>
@@ -242,8 +306,8 @@ export default function HotelDetail() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
               <FaHotel className="text-blue-500" />
               <h2 className="text-xl font-bold text-gray-800">Loại phòng</h2>
             </div>
@@ -252,51 +316,65 @@ export default function HotelDetail() {
               {hotel.rooms?.map((room) => {
                 const badge = statusLabel(room.availability_status);
                 const canBook = room.is_bookable;
-                const nextQuery = new URLSearchParams();
-                if (searchParams.get('check_in')) nextQuery.set('check_in', searchParams.get('check_in'));
-                if (searchParams.get('check_out')) nextQuery.set('check_out', searchParams.get('check_out'));
+                const nextQuery = applyStayDates(
+                  new URLSearchParams(),
+                  searchParams.get('check_in'),
+                  searchParams.get('check_out')
+                );
 
                 return (
                   <div
                     key={room._id}
-                    className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:border-blue-200 transition"
+                    className="rounded-2xl border border-gray-100 bg-gray-50 p-5 transition hover:border-blue-200"
                   >
-                    <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="mb-2 flex items-start justify-between gap-3">
                       <div>
                         <h3 className="font-bold text-gray-800">{room.room_type}</h3>
-                        <p className="text-gray-500 text-sm">Tối đa {room.max_guests} khách</p>
+                        <p className="text-sm text-gray-500">Tối đa {room.max_guests} khách</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.className}`}>
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}>
                         {badge.text}
                       </span>
                     </div>
 
-                    <p className="text-gray-600 text-sm mb-3">{room.description || 'Chưa có mô tả cho loại phòng này.'}</p>
+                    <p className="mb-3 text-sm text-gray-600">
+                      {room.description || 'Chưa có mô tả cho loại phòng này.'}
+                    </p>
 
                     {room.amenities?.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {room.amenities.map((item, index) => (
-                          <span key={index} className="bg-white text-gray-600 text-xs px-2 py-1 rounded-full border border-gray-200">
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {room.amenities.map((item) => (
+                          <span
+                            key={`${room._id}-${item}`}
+                            className="rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+                          >
                             {item}
                           </span>
                         ))}
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-sm mb-3">
+                    <div className="mb-3 flex items-center justify-between text-sm">
                       <span className="text-gray-500">
-                        Còn lại: <strong className="text-gray-800">{room.available_quantity}</strong> / {room.total_quantity}
+                        Còn lại: <strong className="text-gray-800">{room.available_quantity}</strong> /{' '}
+                        {room.total_quantity}
                       </span>
-                      <span className="text-blue-600 font-bold">
-                        {Number(room.price_per_night).toLocaleString('vi-VN')}đ / đêm
+                      <span className="font-bold text-blue-600">
+                        {formatCurrencyVND(room.price_per_night)} / đêm
                       </span>
                     </div>
 
                     <button
                       disabled={!canBook}
-                      onClick={() => navigate(`/book/${hotel._id}/${room._id}${nextQuery.toString() ? `?${nextQuery.toString()}` : ''}`)}
-                      className={`w-full py-2 rounded-xl font-medium transition ${
-                        canBook ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      onClick={() =>
+                        navigate(
+                          `/book/${hotel._id}/${room._id}${nextQuery.toString() ? `?${nextQuery.toString()}` : ''}`
+                        )
+                      }
+                      className={`w-full rounded-xl py-2 font-medium transition ${
+                        canBook
+                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'cursor-not-allowed bg-gray-200 text-gray-500'
                       }`}
                     >
                       {canBook ? 'Đặt phòng' : 'Không thể đặt'}

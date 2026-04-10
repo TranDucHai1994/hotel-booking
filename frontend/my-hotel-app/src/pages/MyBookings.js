@@ -3,18 +3,8 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { FaHotel } from 'react-icons/fa';
-
-const statusColor = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  confirmed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-700',
-};
-
-const statusText = {
-  pending: '⏳ Chờ xác nhận',
-  confirmed: '✅ Đã xác nhận',
-  cancelled: '❌ Đã hủy',
-};
+import { getBookingStatusMeta } from '../utils/bookingStatus';
+import { formatCurrencyVND, formatDateVi } from '../utils/format';
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
@@ -79,7 +69,10 @@ export default function MyBookings() {
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map(b => (
+          {bookings.map((b) => {
+            const statusMeta = getBookingStatusMeta(b.status, { decorated: true });
+
+            return (
             <div key={b._id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
 
               {/* Header */}
@@ -91,8 +84,8 @@ export default function MyBookings() {
                     Mã đặt phòng: #{b._id?.slice(-8).toUpperCase()}
                   </p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor[b.status]}`}>
-                  {statusText[b.status]}
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusMeta.colorClass}`}>
+                  {statusMeta.text}
                 </span>
               </div>
 
@@ -101,13 +94,13 @@ export default function MyBookings() {
                 <div className="bg-gray-50 rounded-xl p-3">
                   <p className="text-gray-400 text-xs mb-1">Check-in</p>
                   <p className="font-medium text-gray-700">
-                    {new Date(b.check_in).toLocaleDateString('vi-VN')}
+                    {formatDateVi(b.check_in)}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3">
                   <p className="text-gray-400 text-xs mb-1">Check-out</p>
                   <p className="font-medium text-gray-700">
-                    {new Date(b.check_out).toLocaleDateString('vi-VN')}
+                    {formatDateVi(b.check_out)}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3">
@@ -117,7 +110,7 @@ export default function MyBookings() {
                 <div className="bg-gray-50 rounded-xl p-3">
                   <p className="text-gray-400 text-xs mb-1">Tổng tiền</p>
                   <p className="font-bold text-blue-600">
-                    {Number(b.total_amount).toLocaleString('vi-VN')}đ
+                    {formatCurrencyVND(b.total_amount)}
                   </p>
                 </div>
               </div>
@@ -163,7 +156,8 @@ export default function MyBookings() {
                 </Link>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 

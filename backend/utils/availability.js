@@ -1,7 +1,7 @@
-const Booking = require('../models/Booking');
+const { query } = require('../config/db');
+const { buildInClause } = require('./sql');
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const BLOCKING_BOOKING_STATUSES = ['pending', 'confirmed'];
 
 function parseDateStart(value) {
   if (!value) return null;
@@ -9,15 +9,9 @@ function parseDateStart(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function parseDateEnd(value) {
-  if (!value) return null;
-  const parsed = new Date(`${value}T00:00:00.000`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function normalizeDateRange(checkInRaw, checkOutRaw) {
   const checkIn = parseDateStart(checkInRaw);
-  const checkOut = parseDateEnd(checkOutRaw);
+  const checkOut = parseDateStart(checkOutRaw);
 
   if (!checkIn || !checkOut) {
     return { checkIn: null, checkOut: null, hasRange: false, isValid: false };
@@ -31,39 +25,32 @@ function normalizeDateRange(checkInRaw, checkOutRaw) {
   };
 }
 
-function getBookingOverlapMatch({ roomIds, checkIn, checkOut, excludeBookingId = null, statuses = BLOCKING_BOOKING_STATUSES }) {
-  const match = {
-    status: { $in: statuses },
-    room_id: { $in: roomIds },
-    check_in: { $lt: checkOut },
-    check_out: { $gt: checkIn },
-  };
-
-  if (excludeBookingId) {
-    match._id = { $ne: excludeBookingId };
-  }
-
-  return match;
-}
-
 async function getBookedRoomCountMap({ roomIds = [], checkIn, checkOut, excludeBookingId = null }) {
   if (!Array.isArray(roomIds) || roomIds.length === 0 || !checkIn || !checkOut) {
     return new Map();
   }
 
-  const rows = await Booking.aggregate([
+  const { clause, params } = buildInClause(roomIds, 'roomId');
+  const result = await query(
+    `
+      SELECT room_id, COUNT(*) AS count
+      FROM dbo.Bookings
+      WHERE status IN ('pending', 'confirmed')
+        AND room_id IN (${clause})
+        AND check_in < @checkOut
+        AND check_out > @checkIn
+        ${excludeBookingId ? 'AND id <> @excludeBookingId' : ''}
+      GROUP BY room_id;
+    `,
     {
-      $match: getBookingOverlapMatch({ roomIds, checkIn, checkOut, excludeBookingId }),
-    },
-    {
-      $group: {
-        _id: '$room_id',
-        count: { $sum: 1 },
-      },
-    },
-  ]);
+      ...params,
+      checkIn,
+      checkOut,
+      excludeBookingId: excludeBookingId || null,
+    }
+  );
 
-  return new Map(rows.map((row) => [String(row._id), Number(row.count || 0)]));
+  return new Map(result.recordset.map((row) => [String(row.room_id), Number(row.count || 0)]));
 }
 
 function computeRoomAvailability(room, bookedCount = 0) {
@@ -104,12 +91,10 @@ function calculateOverlapNights(booking, rangeStart, rangeEnd) {
 }
 
 module.exports = {
-  BLOCKING_BOOKING_STATUSES,
   calculateOverlapNights,
   computeRoomAvailability,
   computeStayNights,
   getBookedRoomCountMap,
   normalizeDateRange,
-  parseDateEnd,
   parseDateStart,
 };

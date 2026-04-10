@@ -11,4 +11,70 @@
 body {
   font-family: 'Inter', sans-serif;
   background-color: #f8fafc;
+  color: #0f172a;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.theme-dark body {
+  background-color: #020617;
+  color: #e2e8f0;
+}
+
+html.theme-dark .bg-white {
+  background-color: #0f172a !important;
+}
+
+html.theme-dark .bg-white\/90,
+html.theme-dark .bg-white\/95 {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+}
+
+html.theme-dark .bg-slate-50,
+html.theme-dark .bg-gray-50 {
+  background-color: #111827 !important;
+}
+
+html.theme-dark .bg-slate-100,
+html.theme-dark .bg-gray-100 {
+  background-color: #1f2937 !important;
+}
+
+html.theme-dark .border-slate-200,
+html.theme-dark .border-slate-200\/80,
+html.theme-dark .border-slate-300,
+html.theme-dark .border-gray-100,
+html.theme-dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+html.theme-dark .text-slate-900,
+html.theme-dark .text-slate-800,
+html.theme-dark .text-slate-700,
+html.theme-dark .text-gray-800,
+html.theme-dark .text-gray-700 {
+  color: #e5e7eb !important;
+}
+
+html.theme-dark .text-slate-600,
+html.theme-dark .text-slate-500,
+html.theme-dark .text-slate-400,
+html.theme-dark .text-gray-600,
+html.theme-dark .text-gray-500,
+html.theme-dark .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+html.theme-dark input,
+html.theme-dark select,
+html.theme-dark textarea {
+  color: #e5e7eb;
+}
+
+html.theme-dark input::placeholder,
+html.theme-dark textarea::placeholder {
+  color: #64748b;
+}
+
+html.theme-dark iframe {
+  filter: saturate(0.95) brightness(0.92);
 }
