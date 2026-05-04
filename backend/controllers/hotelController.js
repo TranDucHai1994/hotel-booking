@@ -15,12 +15,86 @@ function parseAmenityFilter(rawValue) {
   return normalizeStringArray(rawValue);
 }
 
+/**
+ * City alias map: maps Vietnamese user input (diacritics, alternate names)
+ * to the actual DB city values. This is necessary because:
+ * - DB stores ASCII: "Ho Chi Minh", "Da Nang", "Can Tho", etc.
+ * - Users type Vietnamese: "sài gòn", "đà nẵng", "cần thơ", etc.
+ * - "Sài Gòn" → "Ho Chi Minh" is a completely different name, not just diacritics
+ */
+const CITY_ALIAS_MAP = {
+  // Ho Chi Minh aliases
+  'sai gon': 'Ho Chi Minh',
+  'saigon': 'Ho Chi Minh',
+  'sài gòn': 'Ho Chi Minh',
+  'ho chi minh': 'Ho Chi Minh',
+  'hồ chí minh': 'Ho Chi Minh',
+  'hcm': 'Ho Chi Minh',
+  'tp hcm': 'Ho Chi Minh',
+  'tp.hcm': 'Ho Chi Minh',
+  'tphcm': 'Ho Chi Minh',
+  // Ha Noi aliases
+  'ha noi': 'Ha Noi',
+  'hanoi': 'Ha Noi',
+  'hà nội': 'Ha Noi',
+  // Da Nang aliases
+  'da nang': 'Da Nang',
+  'danang': 'Da Nang',
+  'đà nẵng': 'Da Nang',
+  // Can Tho aliases
+  'can tho': 'Can Tho',
+  'cantho': 'Can Tho',
+  'cần thơ': 'Can Tho',
+  // Da Lat aliases
+  'da lat': 'Da Lat',
+  'dalat': 'Da Lat',
+  'đà lạt': 'Da Lat',
+  // Phu Quoc aliases
+  'phu quoc': 'Phu Quoc',
+  'phuquoc': 'Phu Quoc',
+  'phú quốc': 'Phu Quoc',
+  // Nha Trang aliases
+  'nha trang': 'Nha Trang',
+  'nhatrang': 'Nha Trang',
+  // Hue aliases
+  'hue': 'Hue',
+  'huế': 'Hue',
+};
+
+/**
+ * Resolve a user-typed keyword to a DB city value using the alias map.
+ * Returns the DB city string if matched, or null for LIKE fallback.
+ */
+function resolveCityAlias(keyword) {
+  if (!keyword) return null;
+  const normalized = keyword.toLowerCase().trim();
+  return CITY_ALIAS_MAP[normalized] || null;
+}
+
 async function getHotelsByKeyword(keyword = '') {
   if (!keyword) {
     const result = await query('SELECT * FROM dbo.Hotels ORDER BY created_at DESC;');
     return result.recordset.map(mapHotel);
   }
 
+  // First, check if the keyword matches a known city alias
+  const resolvedCity = resolveCityAlias(keyword);
+
+  if (resolvedCity) {
+    // Exact city match — most reliable for Vietnamese input
+    const result = await query(
+      `
+        SELECT *
+        FROM dbo.Hotels
+        WHERE city = @city
+        ORDER BY created_at DESC;
+      `,
+      { city: resolvedCity }
+    );
+    return result.recordset.map(mapHotel);
+  }
+
+  // Fallback: LIKE search against name, city, address (for partial/hotel name searches)
   const result = await query(
     `
       SELECT *
@@ -35,6 +109,7 @@ async function getHotelsByKeyword(keyword = '') {
 
   return result.recordset.map(mapHotel);
 }
+
 
 async function getRoomsByHotelIds(hotelIds = []) {
   if (!hotelIds.length) {

@@ -12,6 +12,7 @@ Hotel booking web app with a customer portal and an admin portal.
 - Admin CRUD for hotels and rooms
 - Admin booking management: list, confirm, cancel, delete
 - Dashboard with revenue, payment breakdown, occupancy rate, top hotels, and recent bookings
+- Admin system setting: configurable sender email for confirmation emails
 - Dark mode
 - SQL Server backend
 - Large demo dataset for showcase
@@ -35,11 +36,30 @@ Hotel booking web app with a customer portal and an admin portal.
 4. Run `npm run seed`
 5. Start API with `npm run dev` or `npm start`
 
+### Real email sending (SMTP)
+
+By default, this project can run in mock email mode. To send real emails, set SMTP variables in `backend/.env`:
+
+```env
+EMAIL_TRANSPORT=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_smtp_account@gmail.com
+SMTP_PASS=your_app_password
+```
+
+Then set sender email in Admin Dashboard (`/admin`) at section `He thong - Cau hinh email gui`.
+
 ## Frontend setup
 
 1. Go to `frontend/my-hotel-app`
 2. Install dependencies with `npm install`
 3. Start app with `npm start`
+
+## Quick start on Windows
+
+- Double-click `start-web.bat` at project root to start both backend and frontend without typing commands.
 
 Frontend default URL:
 

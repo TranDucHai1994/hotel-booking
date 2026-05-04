@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { query } = require('../config/db');
 const { mapUser } = require('../utils/mappers');
 const { logAudit } = require('../services/auditService');
+const { sendRegisterSuccessEmail } = require('../services/emailService');
 
 const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || '7d';
 const REFRESH_TOKEN_EXPIRES_DAYS = Number(process.env.REFRESH_TOKEN_EXPIRES_DAYS || 30);
@@ -145,6 +146,14 @@ exports.register = async (req, res) => {
     const token = signAccessToken(user);
 
     await logAudit({ userId: user.id, action: 'register', entity: 'auth', entityId: null });
+    try {
+      await sendRegisterSuccessEmail({
+        recipientName: user.full_name,
+        recipientEmail: user.email,
+      });
+    } catch (emailError) {
+      console.error('Send register email failed:', emailError.message);
+    }
 
     return res.status(201).json({
       message: 'Đăng ký thành công',

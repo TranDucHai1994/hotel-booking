@@ -1,6 +1,6 @@
-const { query } = require('../config/db');
+﻿const { query } = require('../config/db');
 const { logAudit } = require('../services/auditService');
-const { sendBookingConfirmationEmail } = require('../services/emailService');
+const { sendBookingConfirmationEmail, getEmailTransportInfo } = require('../services/emailService');
 const { mapBooking, mapHotel, mapRoom, mapUser } = require('../utils/mappers');
 const { getBookedRoomCountMap, normalizeDateRange } = require('../utils/availability');
 
@@ -104,29 +104,29 @@ exports.createBooking = async (req, res) => {
   try {
     const room = await getRoomById(room_id);
     if (!room) {
-      return res.status(404).json({ message: 'Phòng không tồn tại' });
+      return res.status(404).json({ message: 'PhÃ²ng khÃ´ng tá»“n táº¡i' });
     }
 
     const hotel = await getHotelById(hotel_id || room.hotel_id);
     if (!hotel) {
-      return res.status(404).json({ message: 'Khách sạn không tồn tại' });
+      return res.status(404).json({ message: 'KhÃ¡ch sáº¡n khÃ´ng tá»“n táº¡i' });
     }
 
     if (Number(room.hotel_id) !== Number(hotel._id)) {
-      return res.status(400).json({ message: 'Phòng không thuộc khách sạn đã chọn' });
+      return res.status(400).json({ message: 'PhÃ²ng khÃ´ng thuá»™c khÃ¡ch sáº¡n Ä‘Ã£ chá»n' });
     }
 
     const dateRange = normalizeDateRange(check_in, check_out);
     if (!dateRange.hasRange || !dateRange.isValid) {
-      return res.status(400).json({ message: 'Ngày không hợp lệ' });
+      return res.status(400).json({ message: 'NgÃ y khÃ´ng há»£p lá»‡' });
     }
 
     if ((room.status || 'available') !== 'available') {
-      return res.status(400).json({ message: 'Phòng hiện không sẵn sàng để đặt' });
+      return res.status(400).json({ message: 'PhÃ²ng hiá»‡n khÃ´ng sáºµn sÃ ng Ä‘á»ƒ Ä‘áº·t' });
     }
 
     if (Number(guests || 0) > Number(room.max_guests || 0)) {
-      return res.status(400).json({ message: 'Số khách vượt quá sức chứa phòng' });
+      return res.status(400).json({ message: 'Sá»‘ khÃ¡ch vÆ°á»£t quÃ¡ sá»©c chá»©a phÃ²ng' });
     }
 
     const bookedMap = await getBookedRoomCountMap({
@@ -138,17 +138,17 @@ exports.createBooking = async (req, res) => {
     const bookedCount = bookedMap.get(String(room._id)) || 0;
     const availableQuantity = Math.max(Number(room.total_quantity || 0) - bookedCount, 0);
     if (availableQuantity <= 0) {
-      return res.status(400).json({ message: 'Phòng đã hết chỗ trong khoảng ngày bạn chọn' });
+      return res.status(400).json({ message: 'PhÃ²ng Ä‘Ã£ háº¿t chá»— trong khoáº£ng ngÃ y báº¡n chá»n' });
     }
 
     let bookingUser = null;
     if (req.user?.id) {
       bookingUser = await getUserById(req.user.id);
       if (!bookingUser) {
-        return res.status(401).json({ message: 'Tài khoản không hợp lệ' });
+        return res.status(401).json({ message: 'TÃ i khoáº£n khÃ´ng há»£p lá»‡' });
       }
       if (bookingUser.deleted_at || bookingUser.status !== 'active') {
-        return res.status(403).json({ message: 'Tài khoản không thể tiếp tục đặt phòng' });
+        return res.status(403).json({ message: 'TÃ i khoáº£n khÃ´ng thá»ƒ tiáº¿p tá»¥c Ä‘áº·t phÃ²ng' });
       }
     }
 
@@ -157,7 +157,7 @@ exports.createBooking = async (req, res) => {
     const resolvedGuestPhone = bookingUser?.phone || String(guest_phone || '').trim();
 
     if (!bookingUser && (!resolvedGuestName || !resolvedGuestEmail)) {
-      return res.status(400).json({ message: 'Khách vãng lai cần nhập họ tên và email' });
+      return res.status(400).json({ message: 'KhÃ¡ch vÃ£ng lai cáº§n nháº­p há» tÃªn vÃ  email' });
     }
 
     const nights = Math.ceil((dateRange.checkOut - dateRange.checkIn) / (1000 * 60 * 60 * 24));
@@ -230,6 +230,7 @@ exports.createBooking = async (req, res) => {
     }
 
     let mockEmail = null;
+    let emailErrorMessage = null;
     try {
       mockEmail = await sendBookingConfirmationEmail({
         booking,
@@ -239,21 +240,25 @@ exports.createBooking = async (req, res) => {
         recipientEmail: resolvedGuestEmail,
       });
     } catch (emailError) {
-      console.error('Mock email failed:', emailError.message);
+      emailErrorMessage = emailError.message;
+      console.error('Send email failed:', emailError.message);
     }
 
     return res.status(201).json({
-      message: 'Đặt phòng thành công',
+      message: 'Dat phong thanh cong',
       booking,
+      email_transport: getEmailTransportInfo(),
       mock_email: mockEmail
         ? {
             to: resolvedGuestEmail,
             message_id: mockEmail.messageId,
+            mode: mockEmail.mode || 'mock',
           }
         : null,
+      email_error: emailErrorMessage,
     });
   } catch (err) {
-    return res.status(500).json({ message: 'Lỗi server', error: err.message });
+    return res.status(500).json({ message: 'Lá»—i server', error: err.message });
   }
 };
 
@@ -309,7 +314,7 @@ exports.getMyBookings = async (req, res) => {
 
     return res.json(result.recordset.map(serializeJoinedBooking));
   } catch (err) {
-    return res.status(500).json({ message: 'Lỗi server', error: err.message });
+    return res.status(500).json({ message: 'Lá»—i server', error: err.message });
   }
 };
 
@@ -340,7 +345,7 @@ exports.getAllBookings = async (req, res) => {
 
     return res.json(result.recordset.map(serializeJoinedBooking));
   } catch (err) {
-    return res.status(500).json({ message: 'Lỗi server', error: err.message });
+    return res.status(500).json({ message: 'Lá»—i server', error: err.message });
   }
 };
 
@@ -348,7 +353,7 @@ exports.updateBookingStatus = async (req, res) => {
   try {
     const current = await getBookingById(req.params.id);
     if (!current) {
-      return res.status(404).json({ message: 'Không tìm thấy booking' });
+      return res.status(404).json({ message: 'KhÃ´ng tÃ¬m tháº¥y booking' });
     }
 
     const nextStatus = String(req.body.status || '').trim();
@@ -375,11 +380,11 @@ exports.updateBookingStatus = async (req, res) => {
     await logAudit({ userId: req.user.id, action: 'update_status', entity: 'booking', entityId: req.params.id });
 
     return res.json({
-      message: 'Cập nhật trạng thái thành công',
+      message: 'Cáº­p nháº­t tráº¡ng thÃ¡i thÃ nh cÃ´ng',
       booking: await getBookingById(req.params.id),
     });
   } catch (err) {
-    return res.status(500).json({ message: 'Lỗi server', error: err.message });
+    return res.status(500).json({ message: 'Lá»—i server', error: err.message });
   }
 };
 
@@ -400,15 +405,15 @@ exports.cancelBooking = async (req, res) => {
 
     const currentBooking = mapBooking(booking.recordset[0]);
     if (!currentBooking) {
-      return res.status(404).json({ message: 'Không tìm thấy booking' });
+      return res.status(404).json({ message: 'KhÃ´ng tÃ¬m tháº¥y booking' });
     }
 
     if (currentBooking.status === 'cancelled') {
-      return res.status(400).json({ message: 'Booking đã được hủy trước đó' });
+      return res.status(400).json({ message: 'Booking Ä‘Ã£ Ä‘Æ°á»£c há»§y trÆ°á»›c Ä‘Ã³' });
     }
 
     if (new Date(currentBooking.check_in) <= new Date()) {
-      return res.status(400).json({ message: 'Chỉ có thể hủy trước ngày nhận phòng' });
+      return res.status(400).json({ message: 'Chá»‰ cÃ³ thá»ƒ há»§y trÆ°á»›c ngÃ y nháº­n phÃ²ng' });
     }
 
     await query(
@@ -425,8 +430,9 @@ exports.cancelBooking = async (req, res) => {
 
     await logAudit({ userId: req.user.id, action: 'cancel', entity: 'booking', entityId: req.params.id });
 
-    return res.json({ message: 'Hủy đặt phòng thành công' });
+    return res.json({ message: 'Há»§y Ä‘áº·t phÃ²ng thÃ nh cÃ´ng' });
   } catch (err) {
-    return res.status(500).json({ message: 'Lỗi server', error: err.message });
+    return res.status(500).json({ message: 'Lá»—i server', error: err.message });
   }
 };
+

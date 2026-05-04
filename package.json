@@ -1,0 +1,26 @@
+{
+  "name": "hotel-booking",
+  "version": "1.0.0",
+  "description": "Hotel booking web app with a customer portal and an admin portal.",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && npm start",
+    "frontend": "cd frontend/my-hotel-app && npm start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TranDucHai1994/hotel-booking.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/TranDucHai1994/hotel-booking/issues"
+  },
+  "homepage": "https://github.com/TranDucHai1994/hotel-booking#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { SYSTEM_SETTING_KEYS, getSettingValue, upsertSettingValue } = require('../services/systemSettingsService');
 const {
   calculateOverlapNights,
   computeStayNights,
@@ -210,5 +211,39 @@ exports.getDashboardStats = async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+};
+
+exports.getSystemSettings = async (_req, res) => {
+  try {
+    const emailSender = await getSettingValue(SYSTEM_SETTING_KEYS.EMAIL_SENDER, 'no-reply@hotelbooking.local');
+    return res.json({
+      email_sender: emailSender,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: 'Loi server', error: err.message });
+  }
+};
+
+exports.updateSystemSettings = async (req, res) => {
+  try {
+    const emailSender = String(req.body?.email_sender || '').trim().toLowerCase();
+    if (!emailSender) {
+      return res.status(400).json({ message: 'Email gui khong duoc de trong' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailSender)) {
+      return res.status(400).json({ message: 'Email gui khong hop le' });
+    }
+
+    await upsertSettingValue(SYSTEM_SETTING_KEYS.EMAIL_SENDER, emailSender);
+
+    return res.json({
+      message: 'Cap nhat cau hinh he thong thanh cong',
+      email_sender: emailSender,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: 'Loi server', error: err.message });
   }
 };

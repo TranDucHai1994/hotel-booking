@@ -1,17 +1,25 @@
+
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import HotelCard from '../components/HotelCard';
+import HotelCardPremium from '../components/HotelCardPremium';
+import HeroSearchBar from '../components/HeroSearchBar';
+import { formatCurrencyVND } from '../utils/format';
+import { cn } from '../utils/cn';
 import {
-  FaCalendarAlt,
-  FaCheckCircle,
-  FaEnvelopeOpenText,
-  FaHotel,
-  FaMapMarkerAlt,
-  FaMoneyBillWave,
-  FaSearch,
-  FaShieldAlt,
-} from 'react-icons/fa';
+  CheckCircle,
+  Mail,
+  ShieldCheck,
+  Hotel,
+  ArrowRight,
+  ChevronDown,
+  Star,
+  MapPin,
+  Sparkles,
+  Clock,
+  BadgeCheck,
+  Zap,
+} from 'lucide-react';
 
 const AMENITY_OPTIONS = [
   { value: 'WiFi', label: 'WiFi' },
@@ -23,6 +31,35 @@ const AMENITY_OPTIONS = [
   { value: 'Restaurant', label: 'Nhà hàng' },
   { value: 'Beachfront', label: 'Sát biển' },
   { value: 'Bike rental', label: 'Thuê xe đạp' },
+];
+
+/**
+ * FIX: Destination chips now use a mapping from display name → DB city values.
+ * Previously, the chips used Vietnamese diacritics (e.g. "Cần Thơ") but the DB
+ * stores ASCII (e.g. "Can Tho"), so `.includes()` always failed.
+ * "Sài Gòn" also needs to map to "Ho Chi Minh" which is a completely different string.
+ */
+const DESTINATIONS = [
+  { label: 'Tất cả', dbValues: [] },
+  { label: 'Cần Thơ', dbValues: ['Can Tho'] },
+  { label: 'Phú Quốc', dbValues: ['Phu Quoc'] },
+  { label: 'Đà Lạt', dbValues: ['Da Lat'] },
+  { label: 'Đà Nẵng', dbValues: ['Da Nang'] },
+  { label: 'Sài Gòn', dbValues: ['Ho Chi Minh'] },
+];
+
+const FILTER_OPTIONS = [
+  { value: 'Pool', label: 'Có hồ bơi' },
+  { value: 'Breakfast', label: 'Bữa sáng' },
+  { value: 'Spa', label: 'Spa' },
+  { value: 'Beachfront', label: 'Sát biển' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'popular', label: 'Phổ biến nhất' },
+  { value: 'price_asc', label: 'Giá tăng dần' },
+  { value: 'price_desc', label: 'Giá giảm dần' },
+  { value: 'rating', label: 'Đánh giá cao nhất' },
 ];
 
 function parseAmenities(searchParams) {
@@ -56,11 +93,63 @@ function buildSearchParams(search) {
   return nextParams;
 }
 
+/** Map API hotel data to HotelCardPremium props */
+function mapHotelToCardProps(hotel) {
+  const stars = Math.max(0, Math.min(5, Number(hotel.star_rating || 0)));
+  const rating = hotel.average_rating ? Number(hotel.average_rating) : stars || 0;
+  const imageSources = [hotel.cover_image, ...(hotel.images || [])].filter(Boolean);
+
+  return {
+    id: hotel._id,
+    name: hotel.name,
+    location: hotel.city || '',
+    imageUrl: imageSources[0] || '',
+    rating: rating,
+    reviewCount: hotel.review_count || 0,
+    pricePerNight: hotel.min_price || 0,
+    amenities: (hotel.amenities || []).slice(0, 3),
+    onSale: !!hotel.is_hot_deal,
+    isFavorited: false,
+  };
+}
+
+/* ── Skeleton Card ── */
+function SkeletonCard() {
+  return (
+    <div
+      className="flex flex-col rounded-card bg-surface shadow-card-default overflow-hidden"
+      aria-hidden="true"
+    >
+      <div
+        className="w-full animate-pulse bg-gray-200"
+        style={{ aspectRatio: '16/9' }}
+      />
+      <div className="flex flex-col gap-3 p-4">
+        <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200" />
+        <div className="h-3 w-1/2 animate-pulse rounded bg-gray-200" />
+        <div className="h-3 w-2/3 animate-pulse rounded bg-gray-200" />
+        <div className="flex gap-2">
+          <div className="h-6 w-16 animate-pulse rounded-input bg-gray-200" />
+          <div className="h-6 w-16 animate-pulse rounded-input bg-gray-200" />
+          <div className="h-6 w-16 animate-pulse rounded-input bg-gray-200" />
+        </div>
+        <div className="h-4 w-1/3 animate-pulse rounded bg-gray-200 self-end" />
+        <div className="h-10 w-full animate-pulse rounded-input bg-gray-200" />
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState(() => readSearchState(searchParams));
+  // FIX: Store the full destination object instead of just the label string
+  const [activeDestination, setActiveDestination] = useState(DESTINATIONS[0]);
+  const [activeFilters, setActiveFilters] = useState([]);
+  const [sortValue, setSortValue] = useState('popular');
 
   useEffect(() => {
     setSearch(readSearchState(searchParams));
@@ -98,326 +187,346 @@ export default function Home() {
     return buildSearchParams(search).toString();
   }, [search]);
 
-  const activeAmenityLabels = useMemo(
-    () => AMENITY_OPTIONS.filter((option) => search.amenities.includes(option.value)).map((option) => option.label),
-    [search.amenities]
-  );
-
-  const activeFilterCount = [
-    search.location,
-    search.check_in && search.check_out ? 'date-range' : '',
-    search.min_price,
-    search.max_price,
-    search.min_rating,
-    search.amenities.length ? 'amenities' : '',
-  ].filter(Boolean).length;
-
   const hotDeals = hotels.filter((hotel) => hotel.is_hot_deal).slice(0, 6);
 
-  const handleSearch = (event) => {
-    event.preventDefault();
-    setSearchParams(buildSearchParams(search));
+  /**
+   * FIX: Destination chip filtering now uses the dbValues array to do
+   * a case-insensitive exact match against hotel.city.
+   * Previously it used `.includes()` on the Vietnamese display label,
+   * which never matched the ASCII city values in the DB.
+   */
+  const filteredHotels = useMemo(() => {
+    let result = hotels;
+
+    // Filter by destination chip using DB city values
+    if (activeDestination.dbValues.length > 0) {
+      const cityLower = activeDestination.dbValues.map((v) => v.toLowerCase());
+      result = result.filter((h) =>
+        cityLower.includes((h.city || '').toLowerCase())
+      );
+    }
+
+    // Filter by amenity pills — case-insensitive comparison
+    if (activeFilters.length > 0) {
+      result = result.filter((h) => {
+        const hotelAmenities = (h.amenities || []).map((a) => a.toLowerCase());
+        return activeFilters.every((f) => hotelAmenities.includes(f.toLowerCase()));
+      });
+    }
+    return result;
+  }, [hotels, activeDestination, activeFilters]);
+
+  // Sort hotels
+  const sortedHotels = useMemo(() => {
+    const list = [...filteredHotels];
+    switch (sortValue) {
+      case 'price_asc':
+        list.sort((a, b) => (a.min_price || 0) - (b.min_price || 0));
+        break;
+      case 'price_desc':
+        list.sort((a, b) => (b.min_price || 0) - (a.min_price || 0));
+        break;
+      case 'rating':
+        list.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0));
+        break;
+      default:
+        break;
+    }
+    return list;
+  }, [filteredHotels, sortValue]);
+
+ // Tìm hàm này trong file Home.js của bạn và cập nhật như sau:
+const handleHeroSearch = ({ destination, checkIn, checkOut, guests, minPrice, maxPrice }) => {
+  const next = {
+    ...search,
+    location: destination || search.location,
+    check_in: checkIn || search.check_in,
+    check_out: checkOut || search.check_out,
+    min_price: minPrice || '', // Nhận thêm min_price từ HeroSearchBar
+    max_price: maxPrice || '', // Nhận thêm max_price từ HeroSearchBar
+  };
+  setSearch(next);
+  setSearchParams(buildSearchParams(next));
+  setActiveDestination(DESTINATIONS[0]);
+};
+
+  const handleFilterToggle = (filterValue) => {
+    setActiveFilters((prev) =>
+      prev.includes(filterValue)
+        ? prev.filter((f) => f !== filterValue)
+        : [...prev, filterValue]
+    );
   };
 
-  const handleReset = () => {
-    setSearch({
-      location: '',
-      check_in: '',
-      check_out: '',
-      min_price: '',
-      max_price: '',
-      min_rating: '',
-      amenities: [],
-    });
-    setSearchParams(new URLSearchParams());
+  const handleViewDetail = (hotelId) => {
+    const url = searchQuery ? `/hotels/${hotelId}?${searchQuery}` : `/hotels/${hotelId}`;
+    navigate(url);
   };
 
-  const toggleAmenity = (value) => {
-    setSearch((current) => ({
-      ...current,
-      amenities: current.amenities.includes(value)
-        ? current.amenities.filter((item) => item !== value)
-        : [...current.amenities, value],
-    }));
-  };
+  const sectionTitle =
+    activeDestination.dbValues.length > 0
+      ? `Khách sạn nổi bật tại ${activeDestination.label}`
+      : 'Khách sạn nổi bật';
 
   return (
-    <div className="bg-slate-50">
-      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_45%,#0ea5e9_100%)] px-4 pb-24 pt-16 text-white lg:pb-28 lg:pt-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.25),_transparent_35%)]" />
-        <div className="absolute -left-20 bottom-10 h-72 w-72 rounded-full bg-cyan-300/10 blur-3xl" />
-        <div className="absolute -right-24 top-16 h-64 w-64 rounded-full bg-blue-200/10 blur-3xl" />
-
-        <div className="relative mx-auto max-w-[1380px]">
-          <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-blue-100 backdrop-blur-sm">
-              <FaHotel className="text-yellow-300" />
-              Nền tảng đặt phòng thông minh cho cả khách thành viên và khách vãng lai
-            </div>
-
-            <h1 className="mx-auto max-w-4xl text-4xl font-black leading-tight tracking-tight md:text-5xl xl:text-6xl">
-              Tìm khách sạn phù hợp,
-              <span className="text-yellow-300"> đặt nhanh trong vài phút</span>
-            </h1>
-
-            <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-blue-100 md:text-lg">
-              Lọc theo vị trí, khoảng giá, đánh giá, tiện ích và ngày ở. Hệ thống tự tính phòng còn trống,
-              hỗ trợ guest mode và mô phỏng email xác nhận ngay sau khi đặt.
-            </p>
-          </div>
-
-          <div className="mx-auto mt-10 max-w-6xl">
-            <form
-              onSubmit={handleSearch}
-              className="rounded-[32px] border border-white/15 bg-white/95 p-4 shadow-2xl backdrop-blur-xl md:p-5"
-            >
-              <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-                <div className="xl:col-span-3">
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Vị trí
-                  </label>
-                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                    <FaMapMarkerAlt className="text-blue-500" />
-                    <input
-                      placeholder="Vị trí hoặc tên khách sạn"
-                      value={search.location}
-                      onChange={(event) => setSearch({ ...search, location: event.target.value })}
-                      className="w-full bg-transparent text-sm text-slate-700 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="sm:grid sm:grid-cols-2 sm:gap-3 xl:col-span-4">
-                  <div>
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Nhận phòng
-                    </label>
-                    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                      <FaCalendarAlt className="text-blue-500" />
-                      <input
-                        type="date"
-                        value={search.check_in}
-                        min={new Date().toISOString().split('T')[0]}
-                        onChange={(event) => setSearch({ ...search, check_in: event.target.value })}
-                        className="w-full bg-transparent text-sm text-slate-700 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-3 sm:mt-0">
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Trả phòng
-                    </label>
-                    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                      <FaCalendarAlt className="text-blue-500" />
-                      <input
-                        type="date"
-                        value={search.check_out}
-                        min={search.check_in || new Date().toISOString().split('T')[0]}
-                        onChange={(event) => setSearch({ ...search, check_out: event.target.value })}
-                        className="w-full bg-transparent text-sm text-slate-700 outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="sm:grid sm:grid-cols-2 sm:gap-3 xl:col-span-3">
-                  <div>
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Giá từ
-                    </label>
-                    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                      <FaMoneyBillWave className="text-blue-500" />
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={search.min_price}
-                        onChange={(event) => setSearch({ ...search, min_price: event.target.value })}
-                        className="w-full bg-transparent text-sm text-slate-700 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-3 sm:mt-0">
-                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Giá đến
-                    </label>
-                    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                      <FaMoneyBillWave className="text-blue-500" />
-                      <input
-                        type="number"
-                        placeholder="5000000"
-                        value={search.max_price}
-                        onChange={(event) => setSearch({ ...search, max_price: event.target.value })}
-                        className="w-full bg-transparent text-sm text-slate-700 outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-end gap-2 xl:col-span-2">
-                  <button
-                    type="submit"
-                    className="flex-1 rounded-2xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
-                  >
-                    <span className="flex items-center justify-center gap-2">
-                      <FaSearch /> Tìm kiếm
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="rounded-2xl bg-slate-100 px-4 py-3 font-semibold text-slate-600 transition hover:bg-slate-200"
-                  >
-                    Xóa
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 lg:grid-cols-[1.1fr,2fr]">
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Đánh giá tối thiểu
-                  </label>
-                  <select
-                    value={search.min_rating}
-                    onChange={(event) => setSearch({ ...search, min_rating: event.target.value })}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none"
-                  >
-                    <option value="">Tất cả mức đánh giá</option>
-                    <option value="3">Từ 3 sao trở lên</option>
-                    <option value="4">Từ 4 sao trở lên</option>
-                    <option value="4.5">Từ 4.5 điểm trở lên</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Tiện ích nổi bật
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {AMENITY_OPTIONS.map((option) => {
-                      const selected = search.amenities.includes(option.value);
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => toggleAmenity(option.value)}
-                          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                            selected
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
+    <div className="min-h-screen bg-background font-sans">
+      {/* ══════════════════════════════════════════
+          HERO SECTION — Photography-first with overlay
+          ══════════════════════════════════════════ */}
+      <section className="relative overflow-hidden text-white">
+        {/* Background hotel photo */}
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1920&q=80"
+            alt=""
+            className="h-full w-full object-cover"
+            loading="eager"
+          />
+          {/* Layered gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/40 via-transparent to-blue-900/30" />
         </div>
-      </section>
 
-      <section className="-mt-10 px-4">
-        <div className="mx-auto grid max-w-[1380px] grid-cols-1 gap-4 md:grid-cols-3">
-          {[
-            {
-              icon: <FaCheckCircle className="text-2xl text-emerald-500" />,
-              title: 'Tìm kiếm nâng cao',
-              desc: 'Kết hợp vị trí, khoảng giá, đánh giá và tiện ích để lọc khách sạn sát nhu cầu hơn.',
-            },
-            {
-              icon: <FaEnvelopeOpenText className="text-2xl text-blue-600" />,
-              title: 'Guest mode và email mô phỏng',
-              desc: 'Khách chưa có tài khoản vẫn đặt được phòng và nhận xác nhận giả lập ngay trên hệ thống.',
-            },
-            {
-              icon: <FaShieldAlt className="text-2xl text-amber-500" />,
-              title: 'Kiểm tra tồn phòng theo ngày',
-              desc: 'Backend tính sẵn số phòng còn trống để tránh đặt vượt công suất thực tế.',
-            },
-          ].map((feature) => (
-            <div key={feature.title} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 inline-flex rounded-2xl bg-slate-50 p-3">{feature.icon}</div>
-              <h3 className="mb-2 text-lg font-bold text-slate-900">{feature.title}</h3>
-              <p className="text-sm leading-6 text-slate-500">{feature.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="px-4 py-14">
-        <div className="mx-auto max-w-[1380px]">
-          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-3xl font-black tracking-tight text-slate-900">Khách sạn nổi bật</h2>
-              <p className="mt-2 text-slate-500">
-                {activeFilterCount > 0
-                  ? `Đang lọc theo ${activeFilterCount} nhóm điều kiện để tìm khách sạn phù hợp nhất.`
-                  : 'Gợi ý các khách sạn nổi bật, sẵn sàng cho chuyến đi tiếp theo của bạn.'}
-              </p>
-            </div>
-
-            {activeFilterCount > 0 && (
-              <div className="rounded-2xl bg-blue-50 px-4 py-3 text-sm text-slate-600">
-                {search.location ? `Vị trí: ${search.location}` : 'Tất cả vị trí'}
-                {search.check_in && search.check_out ? ` • ${search.check_in} - ${search.check_out}` : ''}
-                {search.min_rating ? ` • Từ ${search.min_rating} điểm` : ''}
+        {/* Content */}
+        <div className="relative px-4 pb-8 pt-4 lg:pb-6 lg:pt-4">
+          <div className="mx-auto max-w-[1380px]">
+            <div className="mx-auto max-w-4xl text-center">
+              {/* Tagline pill 
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-medium backdrop-blur-md">
+                <Sparkles size={16} className="text-yellow-400" />
+                <span className="text-white/90">Hơn 51 khách sạn tại 8 thành phố Việt Nam</span>
               </div>
-            )}
-          </div>
-
-          {activeAmenityLabels.length > 0 && (
-            <div className="mb-6 flex flex-wrap gap-2">
-              {activeAmenityLabels.map((label) => (
+              */} 
+              {/* Main headline — emotion-driven, benefit-focused */}
+              <h1 className="mx-auto max-w-[600px] text-2x1 font-black leading-tight tracking-tight md:text-4xl lg:text-5xl">
+                Kỳ nghỉ trong mơ{' '}
+                <br className="hidden sm:block" />
+                bắt đầu từ đây.{' '}
                 <span
-                  key={label}
-                  className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+                  className="inline-block bg-clip-text text-transparent pb-2"
+                  style={{
+                    backgroundImage: 'linear-gradient(135deg, #fbbf24, #f59e0b, #fcd34d)',
+                  }}
                 >
-                  {label}
+                  Đặt phòng chỉ 2 phút.
                 </span>
-              ))}
-            </div>
-          )}
+              </h1>
 
-          {!loading && hotDeals.length > 0 && (
-            <div className="mb-10">
-              <div className="mb-4">
-                <h3 className="text-2xl font-bold text-slate-900">Hot deals hôm nay</h3>
-                <p className="mt-1 text-sm text-slate-500">Ưu đãi nổi bật với mức giá tốt theo dữ liệu hiện tại</p>
-              </div>
+              {/* Supporting text — concise, benefit-focused */}
+              <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
+                So sánh giá, xem phòng trống theo ngày, lọc theo tiện ích — tìm được nơi ở ưng ý nhanh nhất.
+              </p>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {hotDeals.map((hotel) => (
-                  <HotelCard key={hotel._id} hotel={hotel} searchQuery={searchQuery} />
+              {/* Trust stats row */}
+              <div className="mt-7 flex flex-wrap items-center justify-center gap-6 text-sm">
+                {[
+                  { icon: <Hotel size={16} />, text: '51+ khách sạn' },
+                  { icon: <MapPin size={16} />, text: '8 thành phố' },
+                  { icon: <Star size={16} className="text-yellow-400" />, text: '4.5 ★ trung bình' },
+                  { icon: <Zap size={16} className="text-emerald-400" />, text: 'Đặt ngay, xác nhận liền' },
+                ].map((stat) => (
+                  <div key={stat.text} className="flex items-center gap-2 text-white/80">
+                    {stat.icon}
+                    <span className="font-medium">{stat.text}</span>
+                  </div>
                 ))}
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      </section>
 
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+      {/* ══════════════════════════════════════════
+          FLOATING SEARCH BAR — overlaps hero/content boundary
+          ══════════════════════════════════════════ */}
+      <section className="-mt-0 px-4 relative z-0">
+        <div className="mx-auto max-w-5xl">
+          <HeroSearchBar onSearch={handleHeroSearch} />
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          TRUST BADGES — compact horizontal row
+          ══════════════════════════════════════════ */}
+      <section className="px-4 pt-4 pb-0">
+        <div className="mx-auto max-w-[1380px]">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+            {[
+              {
+                icon: <BadgeCheck size={20} className="text-emerald-500" />,
+                text: 'Xác nhận đặt phòng tức thì',
+              },
+              {
+                icon: <ShieldCheck size={20} className="text-primary" />,
+                text: 'Kiểm tra tồn phòng realtime',
+              },
+              {
+                icon: <Clock size={20} className="text-amber-500" />,
+                text: 'Hỗ trợ khách vãng lai (Guest mode)',
+              },
+              {
+                icon: <Mail size={20} className="text-violet-500" />,
+                text: 'Email xác nhận mô phỏng',
+              },
+            ].map((badge) => (
+              <div key={badge.text} className="flex items-center gap-2 text-sm text-text-secondary">
+                {badge.icon}
+                <span className="font-medium">{badge.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          HOT DEALS SECTION (if any)
+          ══════════════════════════════════════════ */}
+      {/*
+      {!loading && hotDeals.length > 0 && (
+        <section className="px-4 pt-14">
+          <div className="mx-auto max-w-[1380px]">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-text-primary">🔥 Hot deals hôm nay</h2>
+                <p className="mt-1 text-sm text-text-secondary">Ưu đãi nổi bật với mức giá tốt theo dữ liệu hiện tại</p>
+              </div>
             </div>
-          ) : hotels.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-slate-300 bg-white py-20 text-center text-slate-400">
-              <FaHotel className="mx-auto mb-4 text-6xl opacity-30" />
-              <p className="text-xl">Không tìm thấy khách sạn phù hợp với bộ lọc hiện tại</p>
+  
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {hotDeals.map((hotel) => (
+                <HotelCardPremium
+                  key={hotel._id}
+                  {...mapHotelToCardProps(hotel)}
+                  onViewDetail={handleViewDetail}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    */}
+      {/* ══════════════════════════════════════════
+          MAIN LISTING SECTION
+          ══════════════════════════════════════════ */}
+      <section className="bg-background px-4 py-4 sm:py-12">
+        <div className="mx-auto max-w-[1380px]">
+          {/* Section header */}
+          <div className="3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-text-primary">{sectionTitle}</h2>
+            <span className="flex items-center gap-1 text-sm text-primary">
+              {!loading && `${sortedHotels.length} khách sạn`}
+            </span>
+          </div>
+
+          {/* Destination chips */}
+          <div className="mb-4 flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label="Lọc theo điểm đến">
+            {DESTINATIONS.map((dest) => {
+              const isActive = activeDestination.label === dest.label;
+              return (
+                <button
+                  key={dest.label}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={`Lọc ${dest.label}`}
+                  onClick={() => setActiveDestination(dest)}
+                  className={cn(
+                    'shrink-0 rounded-full px-4 py-2 text-sm font-medium',
+                    'transition-colors duration-200',
+                    isActive
+                      ? 'bg-primary text-white'
+                      : 'bg-hover-surface text-primary hover:bg-primary/10'
+                  )}
+                >
+                  {dest.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Filter & sort bar */}
+          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative">
+              <label htmlFor="sort-select" className="sr-only">Sắp xếp</label>
+              <select
+                id="sort-select"
+                value={sortValue}
+                onChange={(e) => setSortValue(e.target.value)}
+                aria-label="Sắp xếp kết quả"
+                className={cn(
+                  'appearance-none rounded-input border border-border bg-surface',
+                  'py-2 pl-3 pr-9 text-sm text-text-primary outline-none',
+                  'focus:border-primary focus:ring-1 focus:ring-primary/20',
+                  'cursor-pointer'
+                )}
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    Sắp xếp: {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-muted"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {FILTER_OPTIONS.map((filter) => {
+                const isActive = activeFilters.includes(filter.value);
+                return (
+                  <button
+                    key={filter.value}
+                    onClick={() => handleFilterToggle(filter.value)}
+                    aria-label={`Lọc: ${filter.label}`}
+                    aria-pressed={isActive}
+                    className={cn(
+                      'rounded-full px-4 py-2 text-sm font-medium',
+                      'transition-colors duration-200',
+                      isActive
+                        ? 'bg-primary text-white'
+                        : 'bg-hover-surface text-primary hover:bg-primary/10'
+                    )}
+                  >
+                    {filter.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Card grid / Skeleton / Empty state */}
+          {loading ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          ) : sortedHotels.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-text-muted/30 bg-surface py-20 text-center">
+              <Hotel size={48} className="mb-4 text-text-muted/30" />
+              <p className="text-lg font-semibold text-text-secondary">
+                Không tìm thấy khách sạn phù hợp
+              </p>
+              <p className="mt-2 text-sm text-text-muted">
+                Hãy thử thay đổi bộ lọc hoặc chọn điểm đến khác.
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {hotels.map((hotel) => (
-                <HotelCard key={hotel._id} hotel={hotel} searchQuery={searchQuery} />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {sortedHotels.map((hotel) => (
+                <HotelCardPremium
+                  key={hotel._id}
+                  {...mapHotelToCardProps(hotel)}
+                  onViewDetail={handleViewDetail}
+                />
               ))}
             </div>
           )}
 
-          {!loading && hotels.length > 0 && (
-            <div className="mt-6 text-sm text-slate-500">
-              Tìm thấy <span className="font-semibold text-slate-700">{hotels.length}</span> khách sạn phù hợp.
+          {!loading && sortedHotels.length > 0 && (
+            <div className="mt-6 text-center text-sm text-text-secondary">
+              Tìm thấy <span className="font-semibold text-text-primary">{sortedHotels.length}</span> khách sạn phù hợp.
             </div>
           )}
         </div>

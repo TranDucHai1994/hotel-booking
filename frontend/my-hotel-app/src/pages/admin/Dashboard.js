@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { FaBed, FaCalendarCheck, FaCommentDots, FaHotel, FaMoneyBillWave, FaUsers } from 'react-icons/fa';
@@ -44,6 +45,8 @@ export default function Dashboard() {
     top_hotels: [],
     recent_bookings: [],
   });
+  const [systemEmailSender, setSystemEmailSender] = useState('');
+  const [systemSaving, setSystemSaving] = useState(false);
 
   const loadDashboard = async (nextRange = range) => {
     setLoading(true);
@@ -60,6 +63,43 @@ export default function Dashboard() {
     loadDashboard(range);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
+
+    let mounted = true;
+    const loadSystemSettings = async () => {
+      try {
+        const res = await api.get('/admin/system-settings');
+        if (mounted) {
+          setSystemEmailSender(res.data?.email_sender || '');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadSystemSettings();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.role]);
+
+  const saveSystemSettings = async () => {
+    try {
+      setSystemSaving(true);
+      const payload = {
+        email_sender: String(systemEmailSender || '').trim().toLowerCase(),
+      };
+      const res = await api.put('/admin/system-settings', payload);
+      setSystemEmailSender(res.data?.email_sender || payload.email_sender);
+      toast.success('Da luu email gui he thong');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Khong luu duoc cau hinh he thong');
+    } finally {
+      setSystemSaving(false);
+    }
+  };
 
   const menuItems = useMemo(() => {
     const items = [
@@ -295,6 +335,32 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
+          {user?.role === 'admin' && (
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <h3 className="font-bold text-gray-800">He thong - Cau hinh email gui</h3>
+              <p className="text-sm text-gray-500 mt-1 mb-4">
+                Email nay se duoc dung lam nguoi gui cho email xac nhan dang ky, dat phong, thanh toan...
+              </p>
+              <div className="flex flex-col md:flex-row gap-3">
+                <input
+                  type="email"
+                  value={systemEmailSender}
+                  onChange={(e) => setSystemEmailSender(e.target.value)}
+                  placeholder="no-reply@yourdomain.com"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={saveSystemSettings}
+                  disabled={systemSaving}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
+                >
+                  {systemSaving ? 'Dang luu...' : 'Luu cau hinh'}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>

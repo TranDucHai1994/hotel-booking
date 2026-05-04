@@ -189,12 +189,14 @@ export default function BookingPage() {
               <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-800">
                 <div className="mb-1 flex items-center gap-2 font-semibold">
                   <FaEnvelopeOpenText />
-                  Email xác nhận mô phỏng
+                  Email xác nhận
                 </div>
                 <p>
                   {confirmation.mock_email
-                    ? `Hệ thống đã tạo email mô phỏng gửi tới ${confirmation.mock_email.to}.`
-                    : 'Đặt phòng đã được ghi nhận. Email mô phỏng hiện chưa tạo được.'}
+                    ? confirmation.mock_email.mode === 'smtp'
+                      ? `Hệ thống đã gửi email xác nhận tới ${confirmation.mock_email.to}.`
+                      : `Hệ thống đã tạo email mô phỏng gửi tới ${confirmation.mock_email.to}.`
+                    : 'Đặt phòng đã được ghi nhận, nhưng chưa tạo/gửi được email xác nhận.'}
                 </p>
                 {confirmation.mock_email?.message_id ? (
                   <p className="mt-1 text-xs text-blue-700">Message ID: {confirmation.mock_email.message_id}</p>
@@ -233,7 +235,7 @@ export default function BookingPage() {
                 </div>
                 {isGuestMode ? (
                   <p>
-                    Bạn không cần đăng nhập. Hệ thống sẽ lưu thông tin liên hệ và tạo email xác nhận mô phỏng sau khi đặt.
+                    Bạn không cần đăng nhập. Hệ thống sẽ lưu thông tin liên hệ và tạo email xác nhận sau khi đặt.
                   </p>
                 ) : (
                   <>
@@ -422,7 +424,7 @@ export default function BookingPage() {
 
             <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
               Với guest mode, bạn vẫn đặt được phòng nhưng lịch sử booking sẽ không xuất hiện ở mục "Đặt phòng của tôi".
-              Xác nhận được mô phỏng qua email liên hệ bạn nhập.
+              Xác nhận sẽ được gửi qua email liên hệ bạn nhập.
             </div>
           </div>
         </div>

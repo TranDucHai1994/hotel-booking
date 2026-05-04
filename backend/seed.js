@@ -8,7 +8,7 @@ const usersSeed = [
     full_name: 'System Admin',
     email: 'admin@hotelbooking.local',
     phone: '0900000001',
-    password: 'Admin@123',
+    password: '123',
     role: 'admin',
     status: 'active',
   },
@@ -53,10 +53,10 @@ const hotelsSeed = [
     is_hot_deal: true,
     hot_deal_discount_percent: 20,
     amenities: ['WiFi', 'Breakfast', 'Airport shuttle', 'Gym'],
-    cover_image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
+    cover_image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
     images: [
-      'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80',
+      'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
     ],
   },
   {
@@ -70,9 +70,9 @@ const hotelsSeed = [
     is_hot_deal: true,
     hot_deal_discount_percent: 15,
     amenities: ['WiFi', 'Pool', 'Spa', 'Beachfront', 'Restaurant'],
-    cover_image: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2102f?auto=format&fit=crop&w=1200&q=80',
+    cover_image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80',
     images: [
-      'https://images.unsplash.com/photo-1573843981267-be1999ff37cd?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&q=80',
     ],
   },
   {
@@ -86,7 +86,7 @@ const hotelsSeed = [
     is_hot_deal: false,
     hot_deal_discount_percent: 0,
     amenities: ['WiFi', 'Breakfast', 'Bike rental'],
-    cover_image: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=1200&q=80',
+    cover_image: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=800&q=80',
     images: [],
   },
 ];
@@ -187,16 +187,26 @@ const feedbacksSeed = [
 ];
 
 const hotelImagePool = [
-  'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1501117716987-c8e1ecb2102f?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1573843981267-be1999ff37cd?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1522798514-97ceb8c4f1c8?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+  'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80',
+  'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
+  'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80',
+  'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&q=80',
+  'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=800&q=80',
+  'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800&q=80',
+  'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&q=80',
+  'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=800&q=80',
+  'https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&q=80',
+  'https://images.unsplash.com/photo-1455587734955-081b22074882?w=800&q=80',
+  'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&q=80',
+  'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=800&q=80',
+  'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&q=80',
+  'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
+  'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80',
+  'https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=800&q=80',
+  'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80',
+  'https://images.unsplash.com/photo-1561501900-3701fa6a0864?w=800&q=80',
+  'https://images.unsplash.com/photo-1549294413-26f195200c16?w=800&q=80',
 ];
 
 const cityConfigs = [
@@ -873,7 +883,7 @@ async function seed() {
   console.log('Seeded SQL Server successfully.');
   console.log(`Users: ${counts[0]}, Hotels: ${counts[1]}, Rooms: ${counts[2]}, Bookings: ${counts[3]}, Feedbacks: ${counts[4]}`);
   console.log('Sample accounts:');
-  console.log('- admin@hotelbooking.local / Admin@123');
+  console.log('- admin@hotelbooking.local / 123');
   console.log('- manager@hotelbooking.local / Manager@123');
   console.log('- lan@example.com / Customer@123');
   console.log('- khoa@example.com / Customer@123');
