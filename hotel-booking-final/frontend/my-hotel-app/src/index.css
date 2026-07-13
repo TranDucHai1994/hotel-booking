@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ── Design token CSS variables (light) ──
+   Consumed by tailwind.config.js as rgb(var(--x) / <alpha-value>) so
+   opacity modifiers like bg-surface/90 keep working in both themes. */
+:root {
+  --color-surface: 255 255 255;
+  --color-background: 247 247 247;
+  --color-text-primary: 26 26 26;
+  --color-text-secondary: 107 114 128;
+  --color-text-muted: 156 163 175;
+  --color-hover-surface: 240 244 255;
+  --color-border: rgba(0, 0, 0, 0.08);
+}
+
+/* ── Design token CSS variables (dark) ── */
+html.theme-dark {
+  --color-surface: 30 41 59;
+  --color-background: 2 6 23;
+  --color-text-primary: 241 245 249;
+  --color-text-secondary: 148 163 184;
+  --color-text-muted: 100 116 139;
+  --color-hover-surface: 51 65 85;
+  --color-border: rgba(255, 255, 255, 0.12);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.theme-dark {
+  color-scheme: dark;
+}
+
+html.theme-dark body {
+  background-color: #020617;
+  color: #e2e8f0;
+}
+
+/* Plain white/gray backgrounds used across the older admin/auth screens */
+html.theme-dark .bg-white,
+html.theme-dark [class*="bg-white/"] {
+  background-color: #0f172a !important;
+}
+
+html.theme-dark .bg-slate-50,
+html.theme-dark .bg-gray-50 {
+  background-color: #111827 !important;
+}
+
+html.theme-dark .bg-slate-100,
+html.theme-dark .bg-gray-100 {
+  background-color: #1f2937 !important;
+}
+
+html.theme-dark .bg-blue-50 {
+  background-color: rgba(37, 99, 235, 0.16) !important;
+}
+
+html.theme-dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.16) !important;
+}
+
+html.theme-dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+}
+
+html.theme-dark .border-slate-50,
+html.theme-dark .border-slate-100,
+html.theme-dark [class*="border-slate-100/"],
+html.theme-dark .border-slate-200,
+html.theme-dark [class*="border-slate-200/"],
+html.theme-dark .border-slate-300,
+html.theme-dark .border-gray-100,
+html.theme-dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+html.theme-dark .text-slate-900,
+html.theme-dark .text-slate-800,
+html.theme-dark .text-slate-700,
+html.theme-dark .text-gray-800,
+html.theme-dark .text-gray-700 {
+  color: #e5e7eb !important;
+}
+
+html.theme-dark .text-slate-600,
+html.theme-dark .text-slate-500,
+html.theme-dark .text-slate-400,
+html.theme-dark .text-gray-600,
+html.theme-dark .text-gray-500,
+html.theme-dark .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+html.theme-dark input,
+html.theme-dark select,
+html.theme-dark textarea {
+  color: #e5e7eb;
+}
+
+html.theme-dark input::placeholder,
+html.theme-dark textarea::placeholder {
+  color: #64748b;
+}
+
+html.theme-dark iframe {
+  filter: saturate(0.95) brightness(0.92);
+}
+
+/* Card imagery reads too bright/flat on very dark surfaces; tone it down slightly */
+html.theme-dark img {
+  filter: brightness(0.94);
+}

@@ -1,0 +1,13 @@
+node_modules/
+
+# build output
+frontend/my-hotel-app/build/
+frontend/vite-project/dist/
+
+# logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
