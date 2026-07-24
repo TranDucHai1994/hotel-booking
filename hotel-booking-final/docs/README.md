@@ -1,6 +1,5 @@
 # Tài liệu học bảo vệ đồ án — Hotel Booking System
 
-Bộ tài liệu này được viết để bạn **học thuộc và trả lời phản biện** với thầy. Mỗi file tương ứng với một nhóm chức năng, mọi đoạn giải thích code đều trích dẫn chính xác `đường/dẫn/file.js:số_dòng` để bạn mở đúng chỗ khi bị hỏi.
 
 ## Mục lục
 

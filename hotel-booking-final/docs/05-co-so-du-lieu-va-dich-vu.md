@@ -1,6 +1,5 @@
 # 05. Cơ sở dữ liệu và các Service liên quan
 
-> Tài liệu này giải thích chi tiết tầng dữ liệu (SQL Server) của dự án Hotel Booking: schema, cách khởi tạo DB tự động, script seed/reset, và 2 service quan trọng (AuditLog, SystemSettings). Mục tiêu: học thuộc để trả lời phản biện.
 
 ---
 

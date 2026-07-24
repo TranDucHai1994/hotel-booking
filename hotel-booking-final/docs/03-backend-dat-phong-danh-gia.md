@@ -1,6 +1,6 @@
 # 03 — Backend & Frontend: Đặt phòng, Hủy phòng, Đánh giá (Feedback), Email xác nhận
 
-> Tài liệu này giải thích chi tiết luồng nghiệp vụ **Booking (đặt phòng)** và **Feedback (đánh giá)** của dự án Hotel Booking, kèm trích dẫn `file:line` để học thuộc và trả lời phản biện.
+
 >
 > Các file gốc được phân tích:
 > - `backend/controllers/bookingController.js`

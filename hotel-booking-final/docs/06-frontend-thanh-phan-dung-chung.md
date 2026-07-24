@@ -1,7 +1,5 @@
 # 06 — Frontend: Kiến trúc chung & Thành phần dùng chung (App, Router, Axios, Theme, Navbar, Footer)
 
-> Tài liệu này giải thích các file "xương sống" của phần frontend — những file không thuộc một trang nghiệp vụ cụ thể nào mà được toàn bộ ứng dụng dùng chung. Học kỹ phần này để trả lời tốt các câu hỏi tổng quan kiến trúc.
-
 ---
 
 ## 1. Tổng quan kiến trúc frontend

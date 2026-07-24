@@ -1,7 +1,5 @@
 # 04 — Backend & Trang Quản trị (Admin)
 
-> Tài liệu này giải thích toàn bộ chức năng dành cho Admin/Manager của hệ thống Hotel Booking: Dashboard thống kê, CRUD Khách sạn/Phòng, quản lý Booking, quản lý Người dùng, quản lý Feedback, cấu hình hệ thống và cơ chế bảo vệ route. Mọi trích dẫn code đều theo định dạng `đường/dẫn/file.js:số_dòng` để tiện tra cứu khi bị hỏi vặn.
-
 ---
 
 ## 1. Tổng quan chức năng trang quản trị

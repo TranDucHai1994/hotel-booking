@@ -1,7 +1,5 @@
 # 02 — Backend & Frontend: Khách sạn, Phòng, Tìm kiếm & Tình trạng còn phòng
 
-> Tài liệu này giải thích chi tiết module "Hotel & Room" của hệ thống đặt phòng khách sạn — từ API backend đến giao diện tìm kiếm/hiển thị ở frontend. Mục tiêu: học thuộc để trả lời phản biện.
-
 ---
 
 ## 1. Tổng quan chức năng
