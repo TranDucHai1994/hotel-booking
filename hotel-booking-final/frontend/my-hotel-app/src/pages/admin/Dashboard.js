@@ -610,9 +610,9 @@ export default function Dashboard() {
 
           {user?.role === 'admin' && (
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="font-bold text-gray-800">He thong - Cau hinh email gui</h3>
+              <h3 className="font-bold text-gray-800">Hệ thống - Cấu hình email gửi</h3>
               <p className="text-sm text-gray-500 mt-1 mb-4">
-                Email nay se duoc dung lam nguoi gui cho email xac nhan dang ky, dat phong, thanh toan...
+                Email này sẽ được dùng làm người gửi cho email xác nhận đăng ký, đặt phòng, thanh toán...
               </p>
               <div className="flex flex-col md:flex-row gap-3">
                 <input
@@ -628,7 +628,7 @@ export default function Dashboard() {
                   disabled={systemSaving}
                   className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
                 >
-                  {systemSaving ? 'Dang luu...' : 'Luu cau hinh'}
+                  {systemSaving ? 'Đang lưu...' : 'Lưu cấu hình'}
                 </button>
               </div>
             </div>

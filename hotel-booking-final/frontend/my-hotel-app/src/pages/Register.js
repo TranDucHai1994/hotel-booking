@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { FaHotel, FaUser, FaEnvelope, FaLock, FaPhone } from 'react-icons/fa';
+import { FaHotel, FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 /**
  * Register Component (Trang Đăng ký)
@@ -18,6 +18,8 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -77,21 +79,31 @@ export default function Register() {
             { icon: <FaUser />, label: 'Họ và tên', key: 'full_name', type: 'text', placeholder: 'Nguyễn Văn A' },
             { icon: <FaEnvelope />, label: 'Email', key: 'email', type: 'email', placeholder: 'email@example.com' },
             { icon: <FaPhone />, label: 'Số điện thoại', key: 'phone', type: 'text', placeholder: '0901234567' },
-            { icon: <FaLock />, label: 'Mật khẩu', key: 'password', type: 'password', placeholder: '••••••••' },
-            { icon: <FaLock />, label: 'Xác nhận mật khẩu', key: 'confirm_password', type: 'password', placeholder: '••••••••' },
+            { icon: <FaLock />, label: 'Mật khẩu', key: 'password', type: 'password', placeholder: '••••••••', toggle: [showPassword, setShowPassword] },
+            { icon: <FaLock />, label: 'Xác nhận mật khẩu', key: 'confirm_password', type: 'password', placeholder: '••••••••', toggle: [showConfirmPassword, setShowConfirmPassword] },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-gray-700 text-sm font-medium mb-1">{field.label}</label>
               <div className="flex items-center border border-gray-200 rounded-xl px-3 py-2 focus-within:border-blue-500 transition">
                 <span className="text-gray-400 mr-2 text-sm">{field.icon}</span>
                 <input
-                  type={field.type}
+                  type={field.toggle && field.toggle[0] ? 'text' : field.type}
                   placeholder={field.placeholder}
                   value={form[field.key]}
                   onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
                   className="outline-none w-full text-gray-700 text-sm"
                   required
                 />
+                {field.toggle && (
+                  <button
+                    type="button"
+                    onClick={() => field.toggle[1]((v) => !v)}
+                    className="text-gray-400 hover:text-gray-600 ml-2"
+                    tabIndex={-1}
+                  >
+                    {field.toggle[0] ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                )}
               </div>
             </div>
           ))}

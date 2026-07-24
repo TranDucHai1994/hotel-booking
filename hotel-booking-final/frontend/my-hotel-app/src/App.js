@@ -16,7 +16,6 @@ import AdminBookings from './pages/admin/Bookings';
 import AdminUsers from './pages/admin/Users';
 import AdminFeedbacks from './pages/admin/Feedbacks';
 import AdminRoute from './components/AdminRoute';
-import PremiumDemo from './pages/PremiumDemo';
 import { ThemeProvider } from './context/ThemeContext';
 
 /**
@@ -41,7 +40,6 @@ function App() {
                 {/* === CÁC TRANG DÀNH CHO KHÁCH (GUEST/USER) === */}
                 <Route path="/" element={<Home />} />
                 <Route path="/hotels" element={<Home />} />
-                <Route path="/premium-demo" element={<PremiumDemo />} />
                 <Route path="/hotels/:id" element={<HotelDetail />} />
                 <Route path="/book/:hotelId/:roomId" element={<BookingPage />} />
                 <Route path="/login" element={<Login />} />

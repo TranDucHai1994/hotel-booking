@@ -111,16 +111,6 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
-
-      {/* ══════════════════════════════════════════
-          CODE CŨ (ĐÃ KHÓA BẰNG COMMENT JSX)
-          ══════════════════════════════════════════ */}
-      {/* <nav className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-[1380px] items-center justify-between gap-4 px-4 py-4">
-           ... toàn bộ code cũ của bạn ...
-        </div>
-      </nav>
-      */}
     </>
   );
 }

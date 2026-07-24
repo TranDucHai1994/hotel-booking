@@ -6,7 +6,7 @@
   "scripts": {
     "start": "concurrently \"npm run backend\" \"npm run frontend\"",
     "backend": "cd backend && npm start",
-    "frontend": "cd frontend/my-hotel-app && npm start"
+    "frontend": "cd frontend/my-hotel-app && set PORT=3005 && npm start"
   },
   "repository": {
     "type": "git",

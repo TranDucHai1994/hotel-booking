@@ -7,11 +7,9 @@ import HeroSearchBar from '../components/HeroSearchBar';
 import { formatCurrencyVND } from '../utils/format';
 import { cn } from '../utils/cn';
 import {
-  CheckCircle,
   Mail,
   ShieldCheck,
   Hotel,
-  ArrowRight,
   ChevronDown,
   Star,
   MapPin,
