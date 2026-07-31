@@ -1,3 +1,10 @@
+/**
+ * index.js
+ * Mục đích: Điểm khởi chạy (entry point) của ứng dụng React, render component
+ * App vào thẻ #root trong public/index.html và cấu hình Toaster hiển thị
+ * thông báo popup dùng chung cho toàn app.
+ */
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';

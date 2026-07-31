@@ -1,3 +1,9 @@
+/**
+ * AuthContext.js
+ * Mục đích: Context quản lý trạng thái xác thực người dùng (user, token) toàn app,
+ * cung cấp hàm login/logout và lưu trữ thông tin đăng nhập vào localStorage.
+ */
+
 import { createContext, useContext, useState } from 'react';
 
 // Khởi tạo Context để chia sẻ dữ liệu (User, Token) ra toàn bộ app

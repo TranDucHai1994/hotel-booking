@@ -1,3 +1,9 @@
+/**
+ * admin/Users.js
+ * Mục đích: Trang quản trị tài khoản người dùng (chỉ dành cho admin),
+ * cho phép tìm kiếm, khóa/mở khóa tài khoản, đổi mật khẩu hoặc reset về
+ * mật khẩu mặc định cho người dùng.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';

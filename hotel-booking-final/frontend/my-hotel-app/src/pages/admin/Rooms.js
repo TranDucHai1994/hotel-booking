@@ -1,3 +1,9 @@
+/**
+ * admin/Rooms.js
+ * Mục đích: Trang quản trị phòng theo từng khách sạn, cho phép admin
+ * thêm/sửa/xóa loại phòng, cập nhật giá, số lượng, tiện ích và tình
+ * trạng mở bán/bảo trì/ngưng bán của phòng.
+ */
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';

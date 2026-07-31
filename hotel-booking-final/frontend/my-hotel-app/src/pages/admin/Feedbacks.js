@@ -1,3 +1,9 @@
+/**
+ * admin/Feedbacks.js
+ * Mục đích: Trang quản trị đánh giá (feedback) của khách hàng, cho phép
+ * admin xem danh sách phản hồi theo khách sạn và xóa các đánh giá không
+ * phù hợp.
+ */
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';

@@ -1,3 +1,9 @@
+/**
+ * AdminRoute.js
+ * Mục đích: Guard component bảo vệ các route chỉ dành cho admin/manager,
+ * chuyển hướng người dùng chưa đăng nhập hoặc không đủ quyền sang trang khác.
+ */
+
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 

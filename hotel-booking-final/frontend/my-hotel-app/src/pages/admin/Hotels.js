@@ -1,3 +1,9 @@
+/**
+ * admin/Hotels.js
+ * Mục đích: Trang quản trị khách sạn, cung cấp chức năng CRUD (thêm, sửa,
+ * xóa, xem danh sách) cho các khách sạn trong hệ thống, bao gồm thông
+ * tin cơ bản, hình ảnh, loại hình, hạng sao và cấu hình khuyến mãi hot deal.
+ */
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';

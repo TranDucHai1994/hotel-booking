@@ -1,3 +1,9 @@
+/**
+ * ThemeContext.js
+ * Mục đích: Context quản lý giao diện Sáng/Tối (Light/Dark mode) toàn ứng dụng,
+ * lưu lựa chọn của người dùng vào localStorage để ghi nhớ cho lần truy cập sau.
+ */
+
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'hotel-booking-theme';

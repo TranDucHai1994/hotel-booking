@@ -1,3 +1,10 @@
+/**
+ * App.js
+ * Mục đích: Component gốc của ứng dụng, bọc toàn bộ app bởi các Provider
+ * (AuthProvider, ThemeProvider, BrowserRouter) và khai báo toàn bộ định tuyến
+ * (Routes) cho các trang người dùng và trang quản trị (Admin).
+ */
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';

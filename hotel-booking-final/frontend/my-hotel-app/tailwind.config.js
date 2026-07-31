@@ -1,3 +1,9 @@
+/**
+ * tailwind.config.js
+ * Mục đích: Cấu hình Tailwind CSS cho dự án - định nghĩa đường dẫn quét class,
+ * font chữ, bảng màu, bo góc, đổ bóng và các giá trị mở rộng theme dùng chung.
+ */
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [

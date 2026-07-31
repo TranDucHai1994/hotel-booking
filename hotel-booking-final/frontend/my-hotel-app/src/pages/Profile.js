@@ -1,3 +1,8 @@
+/**
+ * Profile.js
+ * Mục đích: Trang tài khoản cá nhân, cho phép người dùng xem/cập nhật
+ * thông tin cơ bản (họ tên, số điện thoại) và đổi mật khẩu đăng nhập.
+ */
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';

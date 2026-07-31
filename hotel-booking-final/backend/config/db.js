@@ -1,3 +1,10 @@
+/**
+ * config/db.js
+ * Mục đích: Module trung tâm quản lý kết nối SQL Server cho toàn bộ backend.
+ * Tự động tạo Database và Schema (bảng, khóa ngoại, index) nếu chưa tồn tại,
+ * quản lý connection pool dạng singleton, đồng thời cung cấp các hàm query()
+ * và withTransaction() dùng chung cho các module khác.
+ */
 const sql = require('mssql');
 
 const DEFAULT_DATABASE = process.env.SQL_DATABASE || 'HotelBooking';

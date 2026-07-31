@@ -1,3 +1,9 @@
+/**
+ * Navbar.js
+ * Mục đích: Thanh điều hướng chính hiển thị ở đầu mọi trang, chứa logo, chế độ
+ * xem khách (Guest), nút chuyển giao diện Sáng/Tối, và menu tài khoản người dùng.
+ */
+
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaHotel, FaMoon, FaSignInAlt, FaSignOutAlt, FaSun, FaUser } from 'react-icons/fa';

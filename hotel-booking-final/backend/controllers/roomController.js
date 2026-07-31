@@ -1,3 +1,10 @@
+/**
+ * roomController.js
+ * Mục đích: Xử lý các API quản lý phòng khách sạn - lấy danh sách phòng theo
+ * khách sạn (kèm tính toán số phòng trống theo ngày), và CRUD phòng dành cho
+ * Admin (xóa phòng sẽ xóa kèm các booking liên quan trong transaction).
+ * Export chính: getRoomsByHotel, createRoom, updateRoom, deleteRoom.
+ */
 const { query, withTransaction } = require('../config/db');
 const { mapRoom } = require('../utils/mappers');
 const { computeRoomAvailability, getBookedRoomCountMap, normalizeDateRange } = require('../utils/availability');
@@ -9,6 +16,7 @@ const { normalizeStringArray } = require('../utils/sql');
  */
 exports.getRoomsByHotel = async (req, res) => {
   try {
+    // Bước 1: Kiểm tra khoảng ngày check_in/check_out có hợp lệ không
     const { hotel_id, check_in, check_out } = req.query;
     const dateRange = normalizeDateRange(check_in, check_out);
 
@@ -16,6 +24,7 @@ exports.getRoomsByHotel = async (req, res) => {
       return res.status(400).json({ message: 'Ngày nhận/trả phòng không hợp lệ' });
     }
 
+    // Bước 2: Lấy danh sách phòng thuộc khách sạn
     const roomsResult = await query(
       `
         SELECT *
@@ -26,6 +35,7 @@ exports.getRoomsByHotel = async (req, res) => {
       { hotelId: Number(hotel_id) }
     );
 
+    // Bước 3: Nếu có khoảng ngày hợp lệ thì tính số phòng đã đặt để suy ra số phòng còn trống
     const rooms = roomsResult.recordset.map(mapRoom);
     const bookedMap = dateRange.hasRange && dateRange.isValid
       ? await getBookedRoomCountMap({
@@ -35,6 +45,7 @@ exports.getRoomsByHotel = async (req, res) => {
         })
       : new Map();
 
+    // Bước 4: Trả về danh sách phòng kèm số lượng còn trống đã tính toán
     return res.json(
       rooms.map((room) => computeRoomAvailability(room, bookedMap.get(String(room._id)) || 0))
     );
@@ -92,6 +103,7 @@ exports.createRoom = async (req, res) => {
 
 exports.updateRoom = async (req, res) => {
   try {
+    // Bước 1: Tìm phòng hiện tại theo ID, chặn ngay nếu không tồn tại
     const currentResult = await query(
       `
         SELECT TOP 1 *
@@ -106,6 +118,7 @@ exports.updateRoom = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy phòng' });
     }
 
+    // Bước 2: Cập nhật các trường vào database (giữ giá trị cũ nếu request không truyền lên)
     await query(
       `
         UPDATE dbo.Rooms
@@ -136,6 +149,7 @@ exports.updateRoom = async (req, res) => {
       }
     );
 
+    // Bước 3: Lấy lại bản ghi mới nhất sau khi cập nhật để trả về cho client
     const updatedResult = await query(
       `
         SELECT TOP 1 *
@@ -157,6 +171,7 @@ exports.updateRoom = async (req, res) => {
 exports.deleteRoom = async (req, res) => {
   try {
     const deleted = await withTransaction(async (transaction) => {
+      // Bước 1: Kiểm tra phòng có tồn tại không, chặn ngay nếu không tìm thấy
       const roomId = Number(req.params.id);
       const existing = await query(
         `
@@ -172,6 +187,7 @@ exports.deleteRoom = async (req, res) => {
         return false;
       }
 
+      // Bước 2: Xóa các đơn đặt phòng liên quan đến phòng này
       await query(
         `
           DELETE FROM dbo.Bookings
@@ -181,6 +197,7 @@ exports.deleteRoom = async (req, res) => {
         { transaction }
       );
 
+      // Bước 3: Xóa chính bản ghi phòng
       await query(
         `
           DELETE FROM dbo.Rooms

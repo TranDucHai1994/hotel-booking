@@ -1,3 +1,10 @@
+/**
+ * reset-db.js
+ * Mục đích: Script chạy độc lập (node reset-db.js) để XÓA HOÀN TOÀN database
+ * hiện tại và tạo lại một database rỗng cùng tên.
+ * CẢNH BÁO: Thao tác này xóa vĩnh viễn toàn bộ dữ liệu, chỉ dùng cho môi trường
+ * phát triển/test, không chạy trên môi trường production.
+ */
 const sql = require('mssql');
 require('dotenv').config();
 

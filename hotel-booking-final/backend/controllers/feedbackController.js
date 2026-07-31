@@ -1,3 +1,10 @@
+/**
+ * feedbackController.js
+ * Mục đích: Xử lý các API liên quan đến đánh giá (feedback) khách sạn -
+ * tạo đánh giá của người dùng, lấy đánh giá theo khách sạn, liệt kê toàn bộ
+ * đánh giá (admin), và xóa đánh giá.
+ * Export chính: createFeedback, getFeedbackByHotel, listFeedbacks, deleteFeedback.
+ */
 const { query } = require('../config/db');
 const { mapFeedback } = require('../utils/mappers');
 
@@ -6,8 +13,14 @@ const { mapFeedback } = require('../utils/mappers');
  * Người dùng có thể tạo đánh giá cho khách sạn họ đã ở. 
  * Hệ thống sẽ tự cập nhật lại điểm đánh giá trung bình (average_rating) của khách sạn đó.
  */
+// LƯU Ý (hạn chế cần biết): dù comment ở đầu file nói "khách sạn họ đã ở",
+// hàm này CHƯA kiểm tra user có từng đặt phòng/hoàn tất ở khách sạn đó hay không. Điều kiện
+// duy nhất được kiểm tra là chống đánh giá trùng (bước 1). Nghĩa là bất kỳ user đã đăng nhập
+// nào cũng gửi được đánh giá cho khách sạn bất kỳ, kể cả chưa từng đặt phòng ở đó. Đây là
+// điểm có thể nêu ra như "hướng cải tiến trong tương lai" nếu hội đồng hỏi.
 exports.createFeedback = async (req, res) => {
   try {
+    // Bước 1: Kiểm tra user đã đánh giá khách sạn này chưa, tránh đánh giá trùng
     const existing = await query(
       `
         SELECT TOP 1 id
@@ -25,6 +38,7 @@ exports.createFeedback = async (req, res) => {
       return res.status(400).json({ message: 'Bạn đã đánh giá khách sạn này rồi' });
     }
 
+    // Bước 2: Lưu đánh giá mới vào cơ sở dữ liệu và trả kết quả về cho client
     const result = await query(
       `
         INSERT INTO dbo.Feedbacks (
@@ -118,6 +132,11 @@ exports.listFeedbacks = async (req, res) => {
   }
 };
 
+// Route dùng requireRoles(['admin', 'manager']) (xem feedbackRoutes.js) - vì vậy hàm này
+// KHÔNG cần lọc theo user_id như cancelBooking: chỉ admin/manager mới gọi được API xóa
+// feedback, và họ có quyền kiểm duyệt/xóa BẤT KỲ đánh giá nào, không chỉ đánh giá của
+// chính họ. Việc "ai được phép làm gì" được chặn ở tầng route, nên tầng controller không
+// cần lặp lại điều kiện sở hữu.
 exports.deleteFeedback = async (req, res) => {
   try {
     await query(

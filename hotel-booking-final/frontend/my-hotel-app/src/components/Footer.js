@@ -1,3 +1,9 @@
+/**
+ * Footer.js
+ * Mục đích: Component chân trang hiển thị ở mọi trang, chứa thông tin liên hệ,
+ * liên kết mạng xã hội, danh sách điểm đến nổi bật và các liên kết nhanh.
+ */
+
 import { FaHotel, FaFacebook, FaInstagram, FaTwitter, FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 

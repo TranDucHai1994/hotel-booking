@@ -1,3 +1,9 @@
+/**
+ * admin/Dashboard.js
+ * Mục đích: Trang tổng quan (dashboard) dành cho admin/nhân viên, hiển thị
+ * số liệu thống kê doanh thu, số đặt phòng, tỷ lệ lấp đầy, biểu đồ xu
+ * hướng doanh thu, top khách sạn và cấu hình email gửi hệ thống.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';

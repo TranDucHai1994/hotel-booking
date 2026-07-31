@@ -1,3 +1,9 @@
+/**
+ * BookingPage.js
+ * Mục đích: Trang xác nhận và tạo đặt phòng cho một loại phòng cụ thể
+ * (nhập ngày nhận/trả phòng, số khách, phương thức thanh toán), hỗ trợ cả
+ * người dùng đã đăng nhập và khách vãng lai (guest mode).
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '../services/api';

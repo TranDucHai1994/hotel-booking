@@ -1,3 +1,10 @@
+/**
+ * server.js
+ * Mục đích: Điểm khởi chạy (entry point) của backend Hotel Booking.
+ * Khởi tạo Express app, gắn middleware (CORS, JSON body parser) và toàn bộ
+ * route API (auth, users, hotels, rooms, bookings, feedback, admin), kết nối
+ * database trước khi cho server lắng nghe request.
+ */
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();

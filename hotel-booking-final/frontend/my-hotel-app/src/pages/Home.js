@@ -1,4 +1,9 @@
-
+/**
+ * Home.js
+ * Mục đích: Trang chủ của ứng dụng, gồm khu vực hero tìm kiếm, danh sách
+ * khách sạn, các bộ lọc theo điểm đến/tiện ích và sắp xếp kết quả, cùng
+ * phân trang danh sách khách sạn hiển thị.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';

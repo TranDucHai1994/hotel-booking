@@ -1,3 +1,8 @@
+/**
+ * HeroSearchBar.js
+ * Mục đích: Thanh tìm kiếm chính ở trang chủ, thu thập tiêu chí tìm kiếm
+ * (điểm đến, ngày nhận/trả phòng, số khách, khoảng giá) và gửi lên component cha qua onSearch.
+ */
 
 import React, { useState } from 'react';
 import { MapPin, Calendar, Users, Search, Banknote } from 'lucide-react'; // Thêm Banknote icon

@@ -1,3 +1,8 @@
+/**
+ * Register.js
+ * Mục đích: Trang đăng ký tài khoản mới, thu thập họ tên, email, số điện
+ * thoại và mật khẩu; nếu tạo tài khoản thành công sẽ tự động đăng nhập.
+ */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';

@@ -1,3 +1,9 @@
+/**
+ * emailService.js
+ * Mục đích: Cấu hình transporter gửi email (SMTP thật hoặc mock jsonTransport
+ * khi thiếu cấu hình) và cung cấp các hàm gửi email xác nhận đặt phòng,
+ * xác nhận đăng ký tài khoản thành công cho hệ thống HotelBooking.
+ */
 const nodemailer = require('nodemailer');
 const { SYSTEM_SETTING_KEYS, getSettingValue } = require('./systemSettingsService');
 
@@ -6,6 +12,10 @@ function toBoolean(value, fallback = false) {
   return String(value).toLowerCase() === 'true';
 }
 
+// Chọn chế độ gửi email: 'mock' (giả lập, chỉ log ra console, không gửi email thật -
+// dùng khi demo đồ án không có tài khoản SMTP thật) hoặc 'smtp' (gửi email thật qua
+// Gmail/SMTP server). Tự động rơi về mock nếu thiếu đủ 3 thông tin SMTP_HOST/USER/PASS,
+// để tránh app bị crash hoặc treo khi thiếu cấu hình email lúc chạy thử.
 function createTransporter() {
   const explicitMode = String(process.env.EMAIL_TRANSPORT || '').trim().toLowerCase();
   const smtpHost = String(process.env.SMTP_HOST || '').trim();
@@ -63,17 +73,17 @@ async function sendBookingConfirmationEmail({ booking, hotel, room, recipientNam
   const mail = {
     from: senderEmail,
     to: recipientEmail,
-    subject: `Xac nhan dat phong - ${hotel.name}`,
+    subject: `Xác nhận đặt phòng - ${hotel.name}`,
     text: [
-      `Xin chao ${recipientName || 'ban'},`,
+      `Xin chào ${recipientName || 'bạn'},`,
       '',
-      `Dat phong cua ban tai ${hotel.name} da duoc tao thanh cong.`,
-      `Loai phong: ${room.room_type}`,
-      `Ngay nhan phong: ${new Date(booking.check_in).toLocaleDateString('vi-VN')}`,
-      `Ngay tra phong: ${new Date(booking.check_out).toLocaleDateString('vi-VN')}`,
-      `Tong tien: ${Number(booking.total_amount || 0).toLocaleString('vi-VN')}d`,
+      `Đặt phòng của bạn tại ${hotel.name} đã được tạo thành công.`,
+      `Loại phòng: ${room.room_type}`,
+      `Ngày nhận phòng: ${new Date(booking.check_in).toLocaleDateString('vi-VN')}`,
+      `Ngày trả phòng: ${new Date(booking.check_out).toLocaleDateString('vi-VN')}`,
+      `Tổng tiền: ${Number(booking.total_amount || 0).toLocaleString('vi-VN')}đ`,
       '',
-      'Day la email mo phong tu he thong HotelBooking.',
+      'Đây là email mô phỏng từ hệ thống HotelBooking.',
     ].join('\n'),
   };
 
@@ -106,14 +116,14 @@ async function sendRegisterSuccessEmail({ recipientName, recipientEmail }) {
   const mail = {
     from: senderEmail,
     to: recipientEmail,
-    subject: 'Xac nhan dang ky tai khoan thanh cong',
+    subject: 'Xác nhận đăng ký tài khoản thành công',
     text: [
-      `Xin chao ${recipientName || 'ban'},`,
+      `Xin chào ${recipientName || 'bạn'},`,
       '',
-      'Tai khoan cua ban tren he thong HotelBooking da dang ky thanh cong.',
-      'Ban co the dang nhap va bat dau dat phong ngay bay gio.',
+      'Tài khoản của bạn trên hệ thống HotelBooking đã đăng ký thành công.',
+      'Bạn có thể đăng nhập và bắt đầu đặt phòng ngay bây giờ.',
       '',
-      'Cam on ban da su dung dich vu.',
+      'Cảm ơn bạn đã sử dụng dịch vụ.',
     ].join('\n'),
   };
 

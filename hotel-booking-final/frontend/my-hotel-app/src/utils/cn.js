@@ -1,3 +1,8 @@
+/**
+ * utils/cn.js
+ * Mục đích: Hàm tiện ích nối các tên class CSS lại với nhau một cách có
+ * điều kiện, dựa trên thư viện clsx, dùng chung cho các component.
+ */
 import clsx from 'clsx';
 
 /**

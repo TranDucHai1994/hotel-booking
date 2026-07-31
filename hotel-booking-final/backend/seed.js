@@ -1,3 +1,11 @@
+/**
+ * seed.js
+ * Mục đích: Script chạy độc lập (node seed.js) để nạp dữ liệu mẫu (demo)
+ * vào database: tài khoản người dùng, khách sạn, phòng, booking, feedback.
+ * Sử dụng cơ chế upsert nên có thể chạy lại nhiều lần an toàn mà không tạo
+ * trùng lặp dữ liệu; đồng thời tự sinh thêm dữ liệu lớn (nhiều thành phố,
+ * nhiều tháng lịch sử booking) để phục vụ demo báo cáo/thống kê.
+ */
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const { connectDB, query } = require('./config/db');

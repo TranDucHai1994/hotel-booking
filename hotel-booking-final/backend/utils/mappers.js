@@ -1,11 +1,21 @@
+/**
+ * mappers.js
+ * Chứa các hàm chuyển đổi (map) dữ liệu từ cơ sở dữ liệu (Database)
+ * sang dạng object chuẩn trả về cho Frontend (API response).
+ */
 const { parseJsonArray, toBoolean, toNumber } = require('./sql');
 
 /**
- * mappers.js
- * Chứa các hàm chuyển đổi (map) dữ liệu từ cơ sở dữ liệu (Database) 
- * sang dạng object chuẩn trả về cho Frontend (API response).
+ * Chuyển một dòng dữ liệu User (từ SQL Server) sang object chuẩn cho API.
+ * Lưu ý: vẫn trả về password_hash, refresh_token_hash, reset_password_token_hash
+ * (dữ liệu nhạy cảm) — nơi gọi hàm phải tự loại bỏ các trường này trước khi
+ * trả về client, hàm này không tự lọc.
+ *
+ * Ví dụ:
+ *   mapUser({ id: 1, full_name: 'Nguyen Van A', email: 'a@mail.com', phone: null, ... })
+ *   // => { id: 1, _id: 1, full_name: 'Nguyen Van A', email: 'a@mail.com', phone: '', ... }
+ *   mapUser(null) // => null
  */
-
 function mapUser(row) {
   if (!row) return null;
   return {
@@ -30,6 +40,15 @@ function mapUser(row) {
   };
 }
 
+/**
+ * Chuyển một dòng dữ liệu Hotel sang object chuẩn cho API.
+ * Lưu ý: amenities và images được lưu trong DB dạng chuỗi JSON,
+ * cần parseJsonArray để chuyển thành mảng trước khi trả về.
+ *
+ * Ví dụ:
+ *   mapHotel({ id: 5, name: 'ABC Hotel', amenities: '["wifi","pool"]', is_hot_deal: 1, ... })
+ *   // => { _id: 5, name: 'ABC Hotel', amenities: ['wifi', 'pool'], is_hot_deal: true, ... }
+ */
 function mapHotel(row) {
   if (!row) return null;
   return {
@@ -50,6 +69,15 @@ function mapHotel(row) {
   };
 }
 
+/**
+ * Chuyển một dòng dữ liệu Room sang object chuẩn cho API.
+ * Lưu ý: max_guests mặc định 2, total_quantity mặc định 1 nếu DB thiếu dữ liệu,
+ * status mặc định 'available' để tránh phòng bị hiển thị sai trạng thái.
+ *
+ * Ví dụ:
+ *   mapRoom({ id: 10, hotel_id: 5, room_type: 'Deluxe', max_guests: null, total_quantity: 3 })
+ *   // => { _id: 10, hotel_id: 5, room_type: 'Deluxe', max_guests: 2, total_quantity: 3, status: 'available', ... }
+ */
 function mapRoom(row) {
   if (!row) return null;
   return {
@@ -67,6 +95,16 @@ function mapRoom(row) {
   };
 }
 
+/**
+ * Chuyển một dòng dữ liệu Booking sang object chuẩn cho API.
+ * Lưu ý: user_id/hotel_id/room_id ở đây chỉ là ID thô lấy từ bảng Bookings;
+ * nếu cần thông tin chi tiết (tên khách sạn, loại phòng...) phải join thêm
+ * và tự ghép (xem serializeJoinedBooking trong bookingController.js).
+ *
+ * Ví dụ:
+ *   mapBooking({ id: 100, hotel_id: 5, room_id: 10, guests: null, status: null, ... })
+ *   // => { _id: 100, hotel_id: 5, room_id: 10, guests: 1, status: 'pending', ... }
+ */
 function mapBooking(row) {
   if (!row) return null;
   return {
@@ -91,6 +129,13 @@ function mapBooking(row) {
   };
 }
 
+/**
+ * Chuyển một dòng dữ liệu Feedback (đánh giá khách sạn) sang object chuẩn cho API.
+ *
+ * Ví dụ:
+ *   mapFeedback({ id: 1, hotel_id: 5, rating: 4, content: 'Rất tốt' })
+ *   // => { _id: 1, hotel_id: 5, rating: 4, content: 'Rất tốt', createdAt: ..., updatedAt: ... }
+ */
 function mapFeedback(row) {
   if (!row) return null;
   return {

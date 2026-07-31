@@ -1,3 +1,9 @@
+/**
+ * HotelDetail.js
+ * Mục đích: Trang chi tiết một khách sạn, hiển thị mô tả, hình ảnh, tiện
+ * ích, bản đồ, đánh giá và danh sách loại phòng kèm tình trạng phòng trống
+ * theo ngày check-in/check-out do người dùng chọn.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '../services/api';

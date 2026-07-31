@@ -1,4 +1,10 @@
 /**
+ * format.js
+ * Mục đích: Chứa các hàm định dạng hiển thị dùng chung cho frontend
+ * (tiền tệ VND, ngày, ngày giờ theo chuẩn Việt Nam).
+ */
+
+/**
  * Hàm định dạng số tiền thành chuỗi tiền tệ Việt Nam Đồng (VND).
  * Ví dụ: 1000000 -> "1.000.000đ"
  */

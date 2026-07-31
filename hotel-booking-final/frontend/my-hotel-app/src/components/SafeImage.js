@@ -1,3 +1,9 @@
+/**
+ * SafeImage.js
+ * Mục đích: Component hiển thị hình ảnh an toàn với danh sách ảnh dự phòng
+ * (fallback); nếu tất cả ảnh lỗi thì hiển thị placeholder để giao diện không bị vỡ.
+ */
+
 import { useEffect, useMemo, useState } from 'react';
 import { MdHotel } from 'react-icons/md';
 

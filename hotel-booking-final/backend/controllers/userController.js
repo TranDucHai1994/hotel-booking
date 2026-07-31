@@ -1,3 +1,9 @@
+/**
+ * userController.js
+ * Mục đích: Xử lý các API quản lý người dùng dành cho Admin - liệt kê user,
+ * tạo user mới, cập nhật thông tin/mật khẩu, khóa và mở khóa tài khoản.
+ * Export chính: listUsers, createUser, updateUser, lockUser, unlockUser.
+ */
 const bcrypt = require('bcryptjs');
 const { query } = require('../config/db');
 const { mapUser } = require('../utils/mappers');
@@ -85,15 +91,18 @@ exports.listUsers = async (req, res) => {
 exports.createUser = async (req, res) => {
   try {
     const { username, full_name, email, phone, password, role, status } = req.body;
+    // Bước 1: Kiểm tra đủ các trường bắt buộc
     if (!full_name || !email || !password) {
       return res.status(400).json({ message: 'Thiếu full_name/email/password' });
     }
 
+    // Bước 2: Kiểm tra email đã tồn tại chưa
     const existingEmail = await getUserByEmail(email);
     if (existingEmail) {
       return res.status(400).json({ message: 'Email đã tồn tại' });
     }
 
+    // Bước 3: Nếu có nhập username thì kiểm tra username có bị trùng không
     if (username) {
       const existingUsername = await getUserByUsername(username);
       if (existingUsername) {
@@ -101,6 +110,7 @@ exports.createUser = async (req, res) => {
       }
     }
 
+    // Bước 4: Mã hóa mật khẩu và tạo user mới trong database
     const result = await query(
       `
         INSERT INTO dbo.Users (
@@ -147,12 +157,14 @@ exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
     const { username, full_name, email, phone, role, status, password } = req.body;
+    // Bước 1: Kiểm tra user có tồn tại và chưa bị xóa mềm
     const user = await getUserById(id);
 
     if (!user || user.deleted_at) {
       return res.status(404).json({ message: 'Không tìm thấy user' });
     }
 
+    // Bước 2: Nếu đổi email thì kiểm tra email mới có bị trùng với user khác không
     if (email && String(email).toLowerCase().trim() !== user.email) {
       const existingEmail = await getUserByEmail(email);
       if (existingEmail) {
@@ -160,6 +172,7 @@ exports.updateUser = async (req, res) => {
       }
     }
 
+    // Bước 3: Nếu đổi username thì kiểm tra username mới có bị trùng với user khác không
     if (username && String(username).trim() !== (user.username || '')) {
       const existingUsername = await getUserByUsername(username);
       if (existingUsername) {
@@ -167,10 +180,12 @@ exports.updateUser = async (req, res) => {
       }
     }
 
+    // Bước 4: Chỉ mã hóa lại mật khẩu nếu có nhập mật khẩu mới, ngược lại giữ nguyên
     const nextPasswordHash = typeof password === 'string' && password.trim()
       ? await bcrypt.hash(password.trim(), 10)
       : user.password_hash;
 
+    // Bước 5: Cập nhật thông tin user; nếu đổi mật khẩu thì thu hồi các token hiện có và reset số lần đăng nhập sai
     await query(
       `
         UPDATE dbo.Users

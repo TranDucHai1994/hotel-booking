@@ -1,3 +1,10 @@
+/**
+ * scripts/export-sql-dump.js
+ * Mục đích: Script chạy độc lập (node scripts/export-sql-dump.js) để xuất toàn bộ
+ * schema (bảng, index) và dữ liệu hiện có trong database ra một file .sql
+ * (database/hotel_booking_full.sql) có thể chạy lại bằng SSMS/sqlcmd để dựng
+ * database mới. Chỉ đọc dữ liệu (SELECT), không thay đổi database nguồn.
+ */
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');

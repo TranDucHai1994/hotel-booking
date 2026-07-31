@@ -17,7 +17,7 @@
 
 ## Tổng hợp các hạn chế/điểm yếu thật đã phát hiện trong code
 
-Khi rà code, các phần đã phát hiện một số điểm yếu **có thật** (không phải suy đoán) và đã ghi chi tiết vào từng file tương ứng. Đây là danh sách tổng hợp nhanh — nếu thầy hỏi "dự án còn thiếu gì / có thể cải thiện gì", đây chính là câu trả lời trung thực và thuyết phục nhất (thể hiện bạn hiểu sâu code, không chỉ code chạy được):
+
 
 1. **Race condition khi đặt phòng đồng thời** — không có transaction/khóa khi kiểm tra phòng trống trước khi tạo booking, 2 người có thể đặt trùng phòng cùng lúc. *(file 02, 03)*
 2. **Lộ thông tin tồn tại tài khoản (user enumeration)** — thông báo lỗi đăng nhập phân biệt rõ "Email không tồn tại" và "Sai mật khẩu". *(file 01)*

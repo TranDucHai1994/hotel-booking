@@ -1,3 +1,9 @@
+/**
+ * Login.js
+ * Mục đích: Trang đăng nhập, cho phép người dùng nhập email/mật khẩu để
+ * xác thực; nếu thành công sẽ lưu thông tin phiên vào AuthContext và
+ * chuyển hướng về trang chủ.
+ */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';

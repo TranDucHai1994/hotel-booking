@@ -1,3 +1,10 @@
+/**
+ * hotelController.js
+ * Mục đích: Xử lý các API quản lý khách sạn - tìm kiếm/lọc khách sạn (theo
+ * thành phố, giá, đánh giá, tiện ích, ngày trống), xem chi tiết khách sạn,
+ * và CRUD khách sạn dành cho Admin.
+ * Export chính: getHotels, getHotelById, createHotel, updateHotel, deleteHotel.
+ */
 const { query, withTransaction } = require('../config/db');
 const { mapFeedback, mapHotel, mapRoom } = require('../utils/mappers');
 const { computeRoomAvailability, getBookedRoomCountMap, normalizeDateRange } = require('../utils/availability');
@@ -154,6 +161,7 @@ async function getFeedbacksByHotelIds(hotelIds = []) {
  */
 exports.getHotels = async (req, res) => {
   try {
+    // Bước 1: Trích xuất tham số lọc từ query và chuẩn hóa (từ khóa, giá, rating, tiện ích, khoảng ngày)
     const {
       city,
       location,
@@ -172,14 +180,18 @@ exports.getHotels = async (req, res) => {
     const amenitiesFilter = parseAmenityFilter(amenities).map((item) => item.toLowerCase());
     const dateRange = normalizeDateRange(check_in, check_out);
 
+    // Bước 2: Kiểm tra khoảng ngày check_in/check_out có hợp lệ không
     if (dateRange.hasRange && !dateRange.isValid) {
       return res.status(400).json({ message: 'Ngày nhận/trả phòng không hợp lệ' });
     }
 
+    // Bước 3: Lấy danh sách khách sạn theo từ khóa, cùng phòng và đánh giá liên quan
     const hotels = await getHotelsByKeyword(keyword);
     const hotelIds = hotels.map((hotel) => hotel._id);
     const rooms = await getRoomsByHotelIds(hotelIds);
     const feedbacks = await getFeedbacksByHotelIds(hotelIds);
+
+    // Bước 4: Nếu có khoảng ngày hợp lệ thì tính số phòng đã đặt để suy ra số phòng còn trống
     const bookedMap = dateRange.hasRange && dateRange.isValid
       ? await getBookedRoomCountMap({
           roomIds: rooms.map((room) => room._id),
@@ -188,6 +200,7 @@ exports.getHotels = async (req, res) => {
         })
       : new Map();
 
+    // Bước 5: Gom nhóm phòng và đánh giá theo từng khách sạn để tiện tính toán bên dưới
     const roomsByHotel = rooms.reduce((accumulator, room) => {
       const key = String(room.hotel_id);
       if (!accumulator[key]) accumulator[key] = [];
@@ -202,6 +215,7 @@ exports.getHotels = async (req, res) => {
       return accumulator;
     }, {});
 
+    // Bước 6: Tính giá thấp nhất, số phòng trống, đánh giá trung bình cho từng khách sạn và áp dụng các bộ lọc
     const result = hotels
       .map((hotel) => {
         const hotelRooms = roomsByHotel[String(hotel._id)] || [];
@@ -213,6 +227,11 @@ exports.getHotels = async (req, res) => {
           : null;
         const availableRoomCount = hotelRooms.reduce((sum, room) => sum + Number(room.available_quantity || 0), 0);
         const totalRoomCount = hotelRooms.reduce((sum, room) => sum + Number(room.total_quantity || 0), 0);
+        // average_rating KHÔNG được lưu sẵn trong bảng Hotels, mà được TÍNH ĐỘNG mỗi lần
+        // gọi API này: cộng dồn rating từ toàn bộ feedback rồi chia số lượng feedback.
+        // Đánh đổi: đơn giản hơn (không cần nhớ update lại điểm mỗi khi có feedback mới/bị
+        // xóa, tránh lệch số liệu), nhưng tốn CPU hơn nếu khách sạn có rất nhiều đánh giá,
+        // vì phải tính lại từ đầu mỗi lần có người xem trang.
         const averageRating = hotelFeedbacks.length > 0
           ? hotelFeedbacks.reduce((sum, item) => sum + Number(item.rating || 0), 0) / hotelFeedbacks.length
           : null;
@@ -257,12 +276,14 @@ exports.getHotels = async (req, res) => {
  */
 exports.getHotelById = async (req, res) => {
   try {
+    // Bước 1: Kiểm tra khoảng ngày check_in/check_out có hợp lệ không
     const { check_in, check_out } = req.query;
     const dateRange = normalizeDateRange(check_in, check_out);
     if (dateRange.hasRange && !dateRange.isValid) {
       return res.status(400).json({ message: 'Ngày nhận/trả phòng không hợp lệ' });
     }
 
+    // Bước 2: Tìm khách sạn theo ID, chặn ngay nếu không tồn tại
     const hotelResult = await query(
       `
         SELECT TOP 1 *
@@ -277,6 +298,7 @@ exports.getHotelById = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy khách sạn' });
     }
 
+    // Bước 3: Lấy danh sách phòng và danh sách đánh giá thuộc khách sạn này
     const roomsResult = await query(
       `
         SELECT *
@@ -300,6 +322,7 @@ exports.getHotelById = async (req, res) => {
       { hotelId: hotel._id }
     );
 
+    // Bước 4: Nếu có khoảng ngày hợp lệ thì tính số phòng đã đặt để suy ra số phòng còn trống
     const rooms = roomsResult.recordset.map(mapRoom);
     const bookedMap = dateRange.hasRange && dateRange.isValid
       ? await getBookedRoomCountMap({
@@ -313,6 +336,7 @@ exports.getHotelById = async (req, res) => {
       computeRoomAvailability(room, bookedMap.get(String(room._id)) || 0)
     ));
 
+    // Bước 5: Chuẩn hóa danh sách đánh giá và tính điểm đánh giá trung bình
     const feedbacks = feedbackResult.recordset.map((row) => ({
       ...mapFeedback(row),
       user_id: {
@@ -325,6 +349,7 @@ exports.getHotelById = async (req, res) => {
       ? feedbacks.reduce((sum, item) => sum + Number(item.rating || 0), 0) / reviewCount
       : null;
 
+    // Bước 6: Trả về thông tin khách sạn kèm danh sách phòng, đánh giá và các số liệu tổng hợp
     return res.json({
       ...hotel,
       rooms: roomsWithAvailability,
@@ -413,6 +438,7 @@ exports.createHotel = async (req, res) => {
  */
 exports.updateHotel = async (req, res) => {
   try {
+    // Bước 1: Tìm khách sạn hiện tại theo ID, chặn ngay nếu không tồn tại
     const currentResult = await query(
       `
         SELECT TOP 1 *
@@ -427,6 +453,7 @@ exports.updateHotel = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy khách sạn' });
     }
 
+    // Bước 2: Cập nhật các trường vào database (giữ giá trị cũ nếu request không truyền lên)
     await query(
       `
         UPDATE dbo.Hotels
@@ -465,6 +492,7 @@ exports.updateHotel = async (req, res) => {
       }
     );
 
+    // Bước 3: Lấy lại bản ghi mới nhất sau khi cập nhật để trả về cho client
     const updatedResult = await query(
       `
         SELECT TOP 1 *
@@ -490,6 +518,7 @@ exports.updateHotel = async (req, res) => {
 exports.deleteHotel = async (req, res) => {
   try {
     const deleted = await withTransaction(async (transaction) => {
+      // Bước 1: Kiểm tra khách sạn có tồn tại không, chặn ngay nếu không tìm thấy
       const hotelId = Number(req.params.id);
       const existing = await query(
         `
@@ -505,6 +534,7 @@ exports.deleteHotel = async (req, res) => {
         return false;
       }
 
+      // Bước 2: Xóa các đánh giá (feedback) thuộc khách sạn
       await query(
         `
           DELETE FROM dbo.Feedbacks
@@ -514,6 +544,7 @@ exports.deleteHotel = async (req, res) => {
         { transaction }
       );
 
+      // Bước 3: Xóa các đơn đặt phòng thuộc khách sạn
       await query(
         `
           DELETE FROM dbo.Bookings
@@ -523,6 +554,7 @@ exports.deleteHotel = async (req, res) => {
         { transaction }
       );
 
+      // Bước 4: Xóa các phòng thuộc khách sạn
       await query(
         `
           DELETE FROM dbo.Rooms
@@ -532,6 +564,7 @@ exports.deleteHotel = async (req, res) => {
         { transaction }
       );
 
+      // Bước 5: Xóa chính bản ghi khách sạn
       await query(
         `
           DELETE FROM dbo.Hotels

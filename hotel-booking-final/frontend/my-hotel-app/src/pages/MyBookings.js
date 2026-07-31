@@ -1,3 +1,9 @@
+/**
+ * MyBookings.js
+ * Mục đích: Trang "Đặt phòng của tôi", hiển thị lịch sử đặt phòng của
+ * người dùng đang đăng nhập, cho phép hủy đặt phòng đang chờ xác nhận và
+ * gửi đánh giá (feedback) sau khi đã trả phòng.
+ */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';

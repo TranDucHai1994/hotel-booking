@@ -1,3 +1,9 @@
+/**
+ * services/api.js
+ * Mục đích: Tạo và cấu hình một instance Axios dùng chung cho toàn bộ
+ * frontend, tự động gắn token xác thực vào request và tự động đăng xuất
+ * / chuyển hướng về trang đăng nhập khi phát hiện token không hợp lệ.
+ */
 import axios from 'axios';
 
 /**

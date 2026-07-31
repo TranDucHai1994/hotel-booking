@@ -1,3 +1,9 @@
+/**
+ * admin/Bookings.js
+ * Mục đích: Trang quản trị đặt phòng, cho phép admin/nhân viên xem toàn
+ * bộ đơn đặt phòng, lọc theo trạng thái, xác nhận/hủy đặt phòng và xóa
+ * các bản ghi booking đã hủy hoặc đã xác nhận.
+ */
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
